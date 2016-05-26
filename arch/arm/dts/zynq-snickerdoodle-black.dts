@@ -15,12 +15,16 @@
 
 	cpus {
 		cpu@0 {
-			operating-points = <0xD396A 0xF4240 0x69CB5 0xF4240>;
+			operating-points = <
+				/* kHz	uV */
+				866667	1000000
+				433334	1000000
+			>;
 		};
 	};
 
 	chosen {
-		bootargs = "console=ttyPS0,115200n8 root=/dev/mmcblk0p2 rw rootwait earlyprintk";
+		bootargs = "";
                 linux,stdout-path = &uart0;
                 stdout-path = &uart0;
 	};
@@ -123,30 +127,25 @@
 		reg = <0x0>;
                 spi-tx-bus-width = <0x1>;
                 spi-rx-bus-width = <0x4>;
-                spi-max-frequency = <0x2faf080>;
+                spi-max-frequency = <50000000>;
                 #address-cells = <0x1>;
                 #size-cells = <0x1>;
-
                 partition@qspi-fsbl-uboot {
                 	label = "qspi-fsbl-uboot";
                         reg = <0x0 0x100000>;
                 };
-
                 partition@qspi-linux {
                         label = "qspi-linux";
                         reg = <0x100000 0x500000>;
                 };
-
                 partition@qspi-device-tree {
                         label = "qspi-device-tree";
                         reg = <0x600000 0x20000>;
                 };
-
                 partition@qspi-rootfs {
                      	label = "qspi-rootfs";
                      	reg = <0x620000 0x5e0000>;
                 };
-
                 partition@qspi-bitstream {
                     	label = "qspi-bitstream";
                     	reg = <0xc00000 0x400000>;
