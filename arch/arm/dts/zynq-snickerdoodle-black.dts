@@ -113,6 +113,8 @@
 &spi1 {
 	u-boot,dm-pre-reloc;
 	status = "okay";
+	num-cs = <0x1>;
+	is-decoded-cs = <0x0>;	
 };
 
 &qspi {

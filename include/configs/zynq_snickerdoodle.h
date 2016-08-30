@@ -14,6 +14,9 @@
 
 #define CONFIG_ZYNQ_SDHCI0
 
+#define CONFIG_SYS_SDRAM_BASE 0x00000000
+#define CONFIG_SYS_SDRAM_SIZE (1024 * 1024 * 1024)
+
 #define CONFIG_EXTRA_ENV_SETTINGS	\
 	"ethaddr=00:0a:35:00:01:22\0"   \
 	"kernel_image=uImage\0" \
