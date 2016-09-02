@@ -30,8 +30,10 @@
         };
 
 	aliases {
+		ethernet0 = &gem0;
 		serial0 = &uart0;
 		spi0 = &qspi;
+		spi1 = &spi1;
 		mmc0 = &sdhci0;
 		mmc1 = &sdhci1;
 	};
@@ -53,6 +55,10 @@
                 phandle = <0x6>;
         };
 
+	usb_phy0: phy0 {
+		compatible = "usb-nop-xceiv";
+		#phy-cells = <0>;
+	};
 };
 
 &intc {
@@ -85,6 +91,22 @@
 	current-speed = <0x1c200>;				/* 115200 */
 	device_type = "serial";
 	port-number = <0x0>;
+};
+
+&gem0 {
+        status = "okay";
+        phy-mode = "rgmii-id";
+        phy-handle = <&ethernet_phy>;
+
+        ethernet_phy: ethernet-phy@0 {
+                reg = <0>;
+        };
+};
+
+&usb0 {
+        status = "okay";
+        dr_mode = "host";
+        usb-phy = <&usb_phy0>;
 };
 
 &sdhci0 {
