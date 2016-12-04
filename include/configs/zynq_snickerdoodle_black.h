@@ -12,12 +12,12 @@
 
 #define CONFIG_SYS_NO_FLASH
 
-#define CONFIG_ZYNQ_SDHCI0
+/* #define CONFIG_ZYNQ_SDHCI0 */
 
 #define CONFIG_SYS_SDRAM_BASE 0x00000000
 #define CONFIG_SYS_SDRAM_SIZE (1024 * 1024 * 1024)
 
-#define CONFIG_EXTRA_ENV_SETTINGS	\
+/*#define CONFIG_EXTRA_ENV_SETTINGS	\
 	"ethaddr=00:0a:35:00:01:22\0"   \
 	"kernel_image=uImage\0" \
 	"kernel_load_address=0x2080000\0" \
@@ -120,7 +120,7 @@
 		"zynqrsa 0x100000 && " \
 		"bootm ${kernel_load_address} ${ramdisk_load_address} ${devicetree_load_address}\0" \
 		DFU_ALT_INFO
-
+*/
 #include <configs/zynq-common.h>
 
 #endif /* __CONFIG_ZYNQ_SNICKERDOODLE_BLACK_H */
