@@ -19,7 +19,10 @@ DECLARE_GLOBAL_DATA_PTR;
 static xilinx_desc fpga;
 
 /* It can be done differently */
+static xilinx_desc fpga007s = XILINX_XC7Z007S_DESC(0x7);
 static xilinx_desc fpga010 = XILINX_XC7Z010_DESC(0x10);
+static xilinx_desc fpga012s = XILINX_XC7Z012S_DESC(0x12);
+static xilinx_desc fpga014s = XILINX_XC7Z014S_DESC(0x14);
 static xilinx_desc fpga015 = XILINX_XC7Z015_DESC(0x15);
 static xilinx_desc fpga020 = XILINX_XC7Z020_DESC(0x20);
 static xilinx_desc fpga030 = XILINX_XC7Z030_DESC(0x30);
@@ -40,8 +43,17 @@ int board_init(void)
 	idcode = zynq_slcr_get_idcode();
 
 	switch (idcode) {
+	case XILINX_ZYNQ_7007S:
+		fpga = fpga007s;
+		break;
 	case XILINX_ZYNQ_7010:
 		fpga = fpga010;
+		break;
+	case XILINX_ZYNQ_7012S:
+		fpga = fpga012s;
+		break;
+	case XILINX_ZYNQ_7014S:
+		fpga = fpga014s;
 		break;
 	case XILINX_ZYNQ_7015:
 		fpga = fpga015;
@@ -110,6 +122,18 @@ int checkboard(void)
 }
 #endif
 
+int zynq_board_read_rom_ethaddr(unsigned char *ethaddr)
+{
+#if defined(CONFIG_ZYNQ_GEM_EEPROM_ADDR) && \
+    defined(CONFIG_ZYNQ_GEM_I2C_MAC_OFFSET)
+	if (eeprom_read(CONFIG_ZYNQ_GEM_EEPROM_ADDR,
+			CONFIG_ZYNQ_GEM_I2C_MAC_OFFSET,
+			ethaddr, 6))
+		printf("I2C EEPROM MAC address read failed\n");
+#endif
+
+	return 0;
+}
 
 #if !defined(CONFIG_SYS_SDRAM_BASE) && !defined(CONFIG_SYS_SDRAM_SIZE)
 /*
@@ -185,7 +209,8 @@ static phys_size_t fdt_get_reg(const void *fdt, int nodeoffset, void *buf,
 
 #define FDT_REG_SIZE  sizeof(u32)
 /* Temp location for sharing data for storing */
-static u8 tmp[CONFIG_NR_DRAM_BANKS * 16]; /* Up to 64-bit address + 64-bit size */
+/* Up to 64-bit address + 64-bit size */
+static u8 tmp[CONFIG_NR_DRAM_BANKS * 16];
 
 void dram_init_banksize(void)
 {

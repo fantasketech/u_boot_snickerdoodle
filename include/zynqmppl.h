@@ -10,13 +10,21 @@
 
 #include <xilinx.h>
 
-#define ZYNQMP_SIP_SVC_CSU_DMA_INFO		0x82002004
-#define ZYNQMP_SIP_SVC_CSU_DMA_LOAD		0x82002005
-#define ZYNQMP_SIP_SVC_CSU_DMA_DUMP		0x82002006
+#define ZYNQMP_SIP_SVC_CSU_DMA_CHIPID		0xC2000018
+#define ZYNQMP_SIP_SVC_PM_FPGA_LOAD		0xC2000016
+#define ZYNQMP_FPGA_OP_INIT			(1 << 0)
+#define ZYNQMP_FPGA_OP_LOAD			(1 << 1)
+#define ZYNQMP_FPGA_OP_DONE			(1 << 2)
+
+#define ZYNQMP_CSU_IDCODE_DEVICE_CODE_SHIFT	15
+#define ZYNQMP_CSU_IDCODE_DEVICE_CODE_MASK	(0xf << \
+					ZYNQMP_CSU_IDCODE_DEVICE_CODE_SHIFT)
+#define ZYNQMP_CSU_IDCODE_SVD_SHIFT	12
+#define ZYNQMP_CSU_IDCODE_SVD_MASK	(0xe << ZYNQMP_CSU_IDCODE_SVD_SHIFT)
 
 extern struct xilinx_fpga_op zynqmp_op;
 
 #define XILINX_ZYNQMP_DESC \
-{ xilinx_zynqmp, csu_dma, 1, &zynqmp_op, 0, &zynqmp_op, "xczu9eg" }
+{ xilinx_zynqmp, csu_dma, 1, &zynqmp_op, 0, &zynqmp_op }
 
 #endif /* _ZYNQMPPL_H_ */
