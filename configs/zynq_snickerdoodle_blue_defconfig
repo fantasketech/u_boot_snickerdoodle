@@ -1,7 +1,7 @@
 CONFIG_ARM=y
-CONFIG_SYS_CONFIG_NAME="zynq_snickerdoodle"
+CONFIG_SYS_CONFIG_NAME="zynq_snickerdoodle_blue"
 CONFIG_ARCH_ZYNQ=y
-CONFIG_DEFAULT_DEVICE_TREE="zynq-snickerdoodle"
+CONFIG_DEFAULT_DEVICE_TREE="zynq-snickerdoodle-blue"
 CONFIG_SPL=y
 CONFIG_FIT=y
 CONFIG_FIT_VERBOSE=y
