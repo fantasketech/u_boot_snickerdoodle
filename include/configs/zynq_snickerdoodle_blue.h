@@ -1,19 +1,19 @@
 /*
  * (C) Copyright 2016 krtkl inc.
  *
- * Configuration for snickerdoodle black Zynq Development Board
+ * Configuration for snickerdoodle blue Zynq Development Board
  * See zynq-common.h for Zynq common configs
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
-#ifndef __CONFIG_ZYNQ_SNICKERDOODLE_BLACK_H
-#define __CONFIG_ZYNQ_SNICKERDOODLE_BLACK_H
+#ifndef __CONFIG_ZYNQ_SNICKERDOODLE_BLUE_H
+#define __CONFIG_ZYNQ_SNICKERDOODLE_BLUE_H
 
 /* #define CONFIG_ZYNQ_SDHCI0 */
 
 #define CONFIG_SYS_SDRAM_BASE 0x00000000
-#define CONFIG_SYS_SDRAM_SIZE (1024 * 1024 * 1024)
+#define CONFIG_SYS_SDRAM_SIZE (512 * 1024 * 1024)
 
 /*#define CONFIG_EXTRA_ENV_SETTINGS	\
 	"ethaddr=00:0a:35:00:01:22\0"   \

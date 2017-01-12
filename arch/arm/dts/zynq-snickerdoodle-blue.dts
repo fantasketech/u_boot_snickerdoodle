@@ -1,5 +1,5 @@
 /*
- * snickerdoodle board DTS
+ * snickerdoodle blue board DTS
  *
  * Copyright (c) 2016 krtkl inc.
  *
@@ -10,44 +10,43 @@
 /dts-v1/;
 /include/ "zynq-7000.dtsi"
 / {
-        model = "snickerdoodle";
-        compatible = "xlnx,zynq-snickerdoodle", "xlnx,zynq-7000";
+        model = "snickerdoodle blue";
+        compatible = "xlnx,zynq-snickerdoodle-blue", "xlnx,zynq-7000";
 
 	cpus {
 		cpu@0 {
 			operating-points = <
 				/* kHz	uV */
-				666667	1000000
-				333334	1000000
+				666666	1000000
+				333333	1000000
 			>;
 		};
 	};
 
 	chosen {
-                bootargs = "console=ttyPS0,115200n8 earlyprintk ramdisk_size=0x8F0000";
+		bootargs = "console=ttyPS0,115200n8 earlyprintk ramdisk_size=0x8F0000";
                 linux,stdout-path = &uart0;
                 stdout-path = &uart0;
-        };
+	};
 
 	aliases {
 		serial0 = &uart0;
 		spi0 = &qspi;
-		spi1 = &spi1;
 		mmc0 = &sdhci0;
 		mmc1 = &sdhci1;
 	};
 
 	memory {
 		device_type = "memory";
-		reg = <0x0 0x40000000>;
+		reg = <0x0 0x20000000>;
 	};
 
-	wlan_en_reg: fixedregulator@1 {
+        wlan_en_reg: fixedregulator@1 {
                 compatible = "regulator-fixed";
                 regulator-name = "wlan-en-regulator";
-                regulator-min-microvolt = <0x325aa0>;		/* Specified as 3.3V for driver, actually 1.8V */
+                regulator-min-microvolt = <0x325aa0>;           /* Specified as 3.3V for driver, actually 1.8V */
                 regulator-max-microvolt = <0x325aa0>;
-                gpio = <&gpio0 0x9 0x4>;			/* WLAN_EN GPIO 9 on B5 */
+                gpio = <&gpio0 0x9 0x4>;                        /* WLAN_EN GPIO 9 on B5 */
                 startup-delay-us = <0x11170>;
                 enable-active-high;
                 linux,phandle = <0x6>;
@@ -65,6 +64,7 @@
 	ps-clk-frequency = <33333333>;
 };
 
+
 &gpio0 {
         interrupt-controller;
         #interrupt-cells = <0x2>;
@@ -79,12 +79,12 @@
 
 &uart0 {
 	u-boot,dm-pre-reloc;
-	status = "okay";
-	interrupt-parent = <&intc>;
-	xlnx,has-modem = <0x0>;
-	current-speed = <0x1c200>;				/* 115200 */
-	device_type = "serial";
-	port-number = <0x0>;
+        status = "okay";
+        interrupt-parent = <&intc>;
+        xlnx,has-modem = <0x0>;
+        current-speed = <0x1c200>;                              /* 115200 */
+        device_type = "serial";
+        port-number = <0x0>;
 };
 
 &sdhci0 {
@@ -96,44 +96,46 @@
 	u-boot,dm-pre-reloc;
         status = "okay";
         vmmc-supply = <&wlan_en_reg>;
-	bus-width = <0x4>;
+        bus-width = <0x4>;
         cap-power-off-card;
-	keep-power-in-suspend;
+        keep-power-in-suspend;
 
-	#address-cells = <0x1>;
-	#size-cells = <0x0>;
+        #address-cells = <0x1>;
+        #size-cells = <0x0>;
         wlcore: wlcore@0 {
-                compatible = "wlcore", "ti,wl1831", "ti,wl1837";
-		reg = <2>;
+                compatible = "wlcore", "ti,wl1801";
+                reg = <2>;
                 interrupt-parent = <&gpio0>;
-		interrupts = <0x0 0x4>;
+                interrupts = <0x0 0x4>;
         };
 };
 
 &spi1 {
-        u-boot,dm-pre-reloc;
-        status = "okay";
+	u-boot,dm-pre-reloc;
+	status = "okay";
+	num-cs = <0x1>;
+	is-decoded-cs = <0x0>;	
 };
 
 &qspi {
-        u-boot,dm-pre-reloc;
-        status = "okay";
-        is-dual = <0x0>;
-        num-cs = <0x1>;
-        xlnx,qspi-mode = <0x1>;
+	u-boot,dm-pre-reloc;
+	status = "okay";
+	is-dual = <0x0>;
+	num-cs = <0x1>;
+	xlnx,qspi-mode = <0x1>;
 
-        flash@0 {
-                compatible = "n25q128a11";
-                reg = <0x0>;
+	flash@0 {
+		compatible = "n25q128a11";
+		reg = <0x0>;
                 spi-tx-bus-width = <0x1>;
                 spi-rx-bus-width = <0x4>;
                 spi-max-frequency = <50000000>;
                 #address-cells = <0x1>;
                 #size-cells = <0x1>;
-                partition@qspi-fsbl-uboot {
-                        label = "qspi-fsbl-uboot";
-                        reg = <0x0 0x80000>;
-                };
+		partition@qspi-fsbl-uboot {
+			label = "qspi-fsbl-uboot";
+			reg = <0x0 0x80000>;
+		};
                 partition@qspi-linux {
                         label = "qspi-linux";
                         reg = <0x80000 0x400000>;
@@ -143,13 +145,12 @@
                         reg = <0x480000 0x10000>;
                 };
                 partition@qspi-rootfs {
-                        label = "qspi-rootfs";
-                        reg = <0x490000 0x8f0000>;
+                     	label = "qspi-rootfs";
+                     	reg = <0x490000 0x8f0000>;
                 };
                 partition@qspi-bitstream {
-                        label = "qspi-bitstream";
-                        reg = <0xd80000 0x280000>;
+                    	label = "qspi-bitstream";
+                    	reg = <0xd80000 0x280000>;
                 };
         };
 };
-
