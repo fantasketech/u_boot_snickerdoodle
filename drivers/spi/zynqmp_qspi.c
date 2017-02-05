@@ -86,6 +86,7 @@
 
 #define ZYNQMP_QSPI_DMA_ALIGN	0x4
 #define ZYNQMP_QSPI_MAX_BAUD_RATE_VAL	7
+#define ZYNQMP_QSPI_DFLT_BAUD_RATE_VAL	2
 
 #define ZYNQMP_QSPI_TIMEOUT	100000000
 
@@ -282,7 +283,7 @@ static int zynqmp_qspi_set_speed(struct udevice *bus, uint speed)
 	confr = readl(&regs->confr);
 	if (speed == 0) {
 		/* Set baudrate x8, if the freq is 0 */
-		baud_rate_val = 0x2;
+		baud_rate_val = ZYNQMP_QSPI_DFLT_BAUD_RATE_VAL;
 	} else if (plat->speed_hz != speed) {
 		while ((baud_rate_val < 8) &&
 		       ((plat->frequency /
@@ -290,7 +291,7 @@ static int zynqmp_qspi_set_speed(struct udevice *bus, uint speed)
 			baud_rate_val++;
 
 		if (baud_rate_val > ZYNQMP_QSPI_MAX_BAUD_RATE_VAL)
-			baud_rate_val = ZYNQMP_QSPI_MAX_BAUD_RATE_VAL;
+			baud_rate_val = ZYNQMP_QSPI_DFLT_BAUD_RATE_VAL;
 
 		plat->speed_hz = speed / (2 << baud_rate_val);
 	}
@@ -311,8 +312,7 @@ static int zynqmp_qspi_child_pre_probe(struct udevice *bus)
 	struct zynqmp_qspi_priv *priv = dev_get_priv(bus->parent);
 
 	slave->option = priv->is_dual;
-	slave->op_mode_rx = SPI_OPM_RX_QOF;
-	slave->op_mode_tx = SPI_OPM_TX_QPP;
+	slave->mode = SPI_RX_QUAD | SPI_TX_QUAD;
 	slave->bytemode = SPI_4BYTE_MODE;
 
 	return 0;

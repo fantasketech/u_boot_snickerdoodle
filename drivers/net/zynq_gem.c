@@ -24,7 +24,7 @@
 #include <asm/system.h>
 #include <asm/arch/hardware.h>
 #include <asm/arch/sys_proto.h>
-#include <asm-generic/errno.h>
+#include <linux/errno.h>
 #include <clk.h>
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -187,33 +187,17 @@ struct zynq_gem_priv {
 #endif
 };
 
-static inline int mdio_wait(struct zynq_gem_regs *regs)
-{
-	u32 timeout = 20000;
-
-	/* Wait till MDIO interface is ready to accept a new transaction. */
-	while (--timeout) {
-		if (readl(&regs->nwsr) & ZYNQ_GEM_NWSR_MDIOIDLE_MASK)
-			break;
-		WATCHDOG_RESET();
-	}
-
-	if (!timeout) {
-		printf("%s: Timeout\n", __func__);
-		return 1;
-	}
-
-	return 0;
-}
-
 static u32 phy_setup_op(struct zynq_gem_priv *priv, u32 phy_addr, u32 regnum,
 			u32 op, u16 *data)
 {
 	u32 mgtcr;
 	struct zynq_gem_regs *regs = priv->iobase;
+	int err;
 
-	if (mdio_wait(regs))
-		return 1;
+	err = wait_for_bit(__func__, &regs->nwsr, ZYNQ_GEM_NWSR_MDIOIDLE_MASK,
+			    true, 20000, true);
+	if (err)
+		return err;
 
 	/* Construct mgtcr mask for the operation */
 	mgtcr = ZYNQ_GEM_PHYMNTNC_OP_MASK | op |
@@ -223,8 +207,10 @@ static u32 phy_setup_op(struct zynq_gem_priv *priv, u32 phy_addr, u32 regnum,
 	/* Write mgtcr and wait for completion */
 	writel(mgtcr, &regs->phymntnc);
 
-	if (mdio_wait(regs))
-		return 1;
+	err = wait_for_bit(__func__, &regs->nwsr, ZYNQ_GEM_NWSR_MDIOIDLE_MASK,
+			    true, 20000, true);
+	if (err)
+		return err;
 
 	if (op == ZYNQ_GEM_PHYMNTNC_OP_R_MASK)
 		*data = readl(&regs->phymntnc);
@@ -665,9 +651,8 @@ static int zynq_gem_probe(struct udevice *dev)
 	priv->bus->read = zynq_gem_miiphy_read;
 	priv->bus->write = zynq_gem_miiphy_write;
 	priv->bus->priv = priv;
-	strcpy(priv->bus->name, "gem");
 
-	ret = mdio_register(priv->bus);
+	ret = mdio_register_seq(priv->bus, dev->seq);
 	if (ret)
 		return ret;
 
@@ -724,7 +709,7 @@ static int zynq_gem_ofdata_to_platdata(struct udevice *dev)
 
 	priv->emio = fdtdec_get_bool(gd->fdt_blob, dev->of_offset, "xlnx,emio");
 
-	printf("ZYNQ GEM: %lx, phyaddr %d, interface %s\n", (ulong)priv->iobase,
+	printf("ZYNQ GEM: %lx, phyaddr %x, interface %s\n", (ulong)priv->iobase,
 	       priv->phyaddr, phy_string_for_interface(priv->interface));
 
 	return 0;

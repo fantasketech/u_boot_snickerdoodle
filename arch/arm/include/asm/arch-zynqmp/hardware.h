@@ -18,11 +18,6 @@
 
 #define ARASAN_NAND_BASEADDR	0xFF100000
 
-#define ZYNQMP_SATA_BASEADDR	0xFD0C0000
-
-#define ZYNQMP_USB0_XHCI_BASEADDR	0xFE200000
-#define ZYNQMP_USB1_XHCI_BASEADDR	0xFE300000
-
 #define ZYNQMP_CRL_APB_BASEADDR	0xFF5E0000
 #define ZYNQMP_CRL_APB_TIMESTAMP_REF_CTRL_CLKACT	0x1000000
 #define ZYNQMP_CRL_APB_BOOT_PIN_CTRL_OUT_EN_SHIFT	0
@@ -145,5 +140,14 @@ struct csu_regs {
 };
 
 #define csu_base ((struct csu_regs *)ZYNQMP_CSU_BASEADDR)
+
+#define ZYNQMP_PMU_BASEADDR	0xFFD80000
+
+struct pmu_regs {
+	u32 reserved[18];
+	u32 gen_storage6; /* 0x48 */
+};
+
+#define pmu_base ((struct pmu_regs *)ZYNQMP_PMU_BASEADDR)
 
 #endif /* _ASM_ARCH_HARDWARE_H */
