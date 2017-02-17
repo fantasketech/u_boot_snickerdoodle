@@ -339,6 +339,47 @@ static int mmc_go_idle(struct mmc *mmc)
 	return 0;
 }
 
+#ifndef CONFIG_DM_MMC_OPS
+static int mmc_set_voltage(struct mmc *mmc)
+{
+	int err = 0;
+
+	if (mmc->cfg->ops->set_voltage) {
+		err = mmc->cfg->ops->set_voltage(mmc);
+		if (err)
+			return err;
+	}
+
+	return err;
+}
+#endif
+
+static int mmc_switch_voltage(struct mmc *mmc)
+{
+	struct mmc_cmd cmd;
+	int err = 0;
+
+	cmd.cmdidx = SD_CMD_SWITCH_UHS18V;
+	cmd.cmdarg = 0;
+	cmd.resp_type = MMC_RSP_NONE;
+
+	err = mmc_send_cmd(mmc, &cmd, NULL);
+	if (err)
+		return err;
+
+	err = mmc_set_voltage(mmc);
+
+	return err;
+}
+
+static int mmc_host_uhs(struct mmc *mmc)
+{
+	return mmc->cfg->host_caps &
+		(MMC_MODE_UHS_SDR12 | MMC_MODE_UHS_SDR25 |
+		 MMC_MODE_UHS_SDR50 | MMC_MODE_UHS_SDR104 |
+		 MMC_MODE_UHS_DDR50);
+}
+
 static int sd_send_op_cond(struct mmc *mmc)
 {
 	int timeout = 1000;
@@ -371,6 +412,9 @@ static int sd_send_op_cond(struct mmc *mmc)
 		if (mmc->version == SD_VERSION_2)
 			cmd.cmdarg |= OCR_HCS;
 
+		if (mmc_host_uhs(mmc))
+			cmd.cmdarg |= SD_OCR_S18R;
+
 		err = mmc_send_cmd(mmc, &cmd, NULL);
 
 		if (err)
@@ -400,6 +444,13 @@ static int sd_send_op_cond(struct mmc *mmc)
 	}
 
 	mmc->ocr = cmd.response[0];
+
+	if (mmc->ocr & SD_OCR_S18R) {
+		err = mmc_switch_voltage(mmc);
+		if (err)
+			return err;
+		mmc->is_uhs = 1;
+	}
 
 	mmc->high_capacity = ((mmc->ocr & OCR_HCS) == OCR_HCS);
 	mmc->rca = 0;
@@ -568,9 +619,19 @@ static int mmc_change_freq(struct mmc *mmc)
 	if (err)
 		return err;
 
-	cardtype = ext_csd[EXT_CSD_CARD_TYPE] & 0xf;
+	cardtype = ext_csd[EXT_CSD_CARD_TYPE] & 0x3f;
 
-	err = mmc_switch(mmc, EXT_CSD_CMD_SET_NORMAL, EXT_CSD_HS_TIMING, 1);
+	if (mmc->forcehs)
+		cardtype &= ~EXT_CSD_CARD_TYPE_HS200;
+
+	if (cardtype & EXT_CSD_CARD_TYPE_HS200)
+		err = mmc_switch(mmc, EXT_CSD_CMD_SET_NORMAL,
+				 EXT_CSD_HS_TIMING,
+				 EXT_CSD_HS_TIMING_HS200);
+	else
+		err = mmc_switch(mmc, EXT_CSD_CMD_SET_NORMAL,
+				 EXT_CSD_HS_TIMING,
+				 EXT_CSD_HS_TIMING_HIGH_SPEED);
 
 	if (err)
 		return err;
@@ -585,8 +646,10 @@ static int mmc_change_freq(struct mmc *mmc)
 	if (!ext_csd[EXT_CSD_HS_TIMING])
 		return 0;
 
-	/* High Speed is set, there are two types: 52MHz and 26MHz */
-	if (cardtype & EXT_CSD_CARD_TYPE_52) {
+	/* High Speed is set, there are three types: 200MHZ, 52MHz and 26MHz */
+	if (cardtype & EXT_CSD_CARD_TYPE_HS200) {
+		mmc->card_caps |= MMC_MODE_HS200;
+	} else if (cardtype & EXT_CSD_CARD_TYPE_52) {
 		if (cardtype & EXT_CSD_CARD_TYPE_DDR_1_8V)
 			mmc->card_caps |= MMC_MODE_DDR_52MHz;
 		mmc->card_caps |= MMC_MODE_HS_52MHz | MMC_MODE_HS;
@@ -625,9 +688,64 @@ static int mmc_set_capacity(struct mmc *mmc, int part_num)
 	return 0;
 }
 
+static int mmc_boot_part_access_chk(struct mmc *mmc, unsigned int part_num)
+{
+	int ret;
+
+	if (((part_num & PART_ACCESS_MASK) == PART_ACCESS_BOOT0) &&
+	    (mmc->card_caps == MMC_MODE_HS200)) {
+		mmc->forcehs = 1;
+		ret = mmc_change_freq(mmc);
+		if (ret)
+			return ret;
+
+		mmc->card_caps &= mmc->cfg->host_caps;
+		if (mmc->card_caps & MMC_MODE_HS) {
+			if (mmc->card_caps & MMC_MODE_HS_52MHz)
+				mmc->tran_speed = 52000000;
+			else
+				mmc->tran_speed = 26000000;
+		}
+		mmc_set_clock(mmc, mmc->tran_speed);
+	}
+
+	if (((part_num & PART_ACCESS_MASK) != PART_ACCESS_BOOT0) &&
+	    mmc->forcehs) {
+		mmc->forcehs = 0;
+		ret = mmc_change_freq(mmc);
+		if (ret)
+			return ret;
+
+		mmc->card_caps &= mmc->cfg->host_caps;
+		if (mmc->card_caps & MMC_MODE_HS200) {
+			mmc->tran_speed = 200000000;
+		} else if (mmc->card_caps & MMC_MODE_HS) {
+			if (mmc->card_caps & MMC_MODE_HS_52MHz)
+				mmc->tran_speed = 52000000;
+			else
+				mmc->tran_speed = 26000000;
+		}
+
+		mmc_set_clock(mmc, mmc->tran_speed);
+
+		if ((mmc->card_caps &  MMC_MODE_HS200) &&
+		    (mmc->cfg->host_caps & MMC_MODE_NEEDS_TUNING)) {
+			ret = mmc_execute_tuning(mmc);
+			if (ret)
+				return ret;
+		}
+	}
+
+	return 0;
+}
+
 int mmc_switch_part(struct mmc *mmc, unsigned int part_num)
 {
 	int ret;
+
+	ret = mmc_boot_part_access_chk(mmc, part_num);
+	if (ret)
+		return ret;
 
 	ret = mmc_switch(mmc, EXT_CSD_CMD_SET_NORMAL, EXT_CSD_PART_CONF,
 			 (mmc->part_config & ~PART_ACCESS_MASK)
@@ -886,6 +1004,7 @@ static int sd_change_freq(struct mmc *mmc)
 	ALLOC_CACHE_ALIGN_BUFFER(uint, switch_status, 16);
 	struct mmc_data data;
 	int timeout;
+	u8 mode;
 
 	mmc->card_caps = 0;
 
@@ -963,6 +1082,40 @@ retry_scr:
 			break;
 	}
 
+	mode = MMC_TIMING_HS;
+
+	if (mmc->is_uhs && mmc->version >= SD_VERSION_3) {
+		if (!(mmc_host_uhs(mmc)))
+			return 0;
+
+		if (__be32_to_cpu(switch_status[3]) &
+		    SD_UHS_SPEED_SDR104) {
+			mode = MMC_TIMING_UHS_SDR104;
+			mmc->card_caps |= MMC_MODE_UHS_SDR104;
+			mmc->tran_speed = 208000000;
+		} else if (__be32_to_cpu(switch_status[3]) &
+			   SD_UHS_SPEED_SDR50) {
+			mode = MMC_TIMING_UHS_SDR50;
+			mmc->card_caps |= MMC_MODE_UHS_SDR50;
+			mmc->tran_speed = 100000000;
+		} else if (__be32_to_cpu(switch_status[3]) &
+			   SD_UHS_SPEED_DDR50) {
+			mode = MMC_TIMING_UHS_DDR50;
+			mmc->card_caps |= MMC_MODE_UHS_DDR50;
+			mmc->tran_speed = 50000000;
+		} else if (__be32_to_cpu(switch_status[3]) &
+			   SD_UHS_SPEED_SDR25) {
+			mode = MMC_TIMING_UHS_SDR25;
+			mmc->card_caps |= MMC_MODE_UHS_SDR25;
+			mmc->tran_speed = 50000000;
+		} else {
+			mode = MMC_TIMING_UHS_SDR12;
+			mmc->card_caps |= MMC_MODE_UHS_SDR12;
+			mmc->tran_speed = 25000000;
+		}
+		mmc->uhsmode = mode;
+	}
+
 	/* If high-speed isn't supported, we return */
 	if (!(__be32_to_cpu(switch_status[3]) & SD_HIGHSPEED_SUPPORTED))
 		return 0;
@@ -977,7 +1130,7 @@ retry_scr:
 		(mmc->cfg->host_caps & MMC_MODE_HS)))
 		return 0;
 
-	err = sd_switch(mmc, SD_SWITCH_SWITCH, 0, 1, (u8 *)switch_status);
+	err = sd_switch(mmc, SD_SWITCH_SWITCH, 0, mode, (u8 *)switch_status);
 
 	if (err)
 		return err;
@@ -1102,6 +1255,33 @@ static void mmc_set_bus_width(struct mmc *mmc, uint width)
 
 	mmc_set_ios(mmc);
 }
+#ifndef CONFIG_DM_MMC_OPS
+static int mmc_switch_uhs(struct mmc *mmc)
+{
+	int err = 0;
+
+	if (mmc->cfg->ops->set_uhs)
+		err = mmc->cfg->ops->set_uhs(mmc);
+
+	return err;
+}
+
+static int mmc_execute_tuning(struct mmc *mmc)
+{
+	int err = 0;
+	u8 cmd;
+
+	if (mmc->cfg->ops->execute_tuning) {
+		if (IS_SD(mmc))
+			cmd = MMC_CMD_SEND_TUNING_BLOCK;
+		else
+			cmd = MMC_CMD_SEND_TUNING_BLOCK_HS200;
+		err = mmc->cfg->ops->execute_tuning(mmc, cmd);
+	}
+
+	return err;
+}
+#endif
 
 static int mmc_startup(struct mmc *mmc)
 {
@@ -1452,11 +1632,16 @@ static int mmc_startup(struct mmc *mmc)
 		err = sd_read_ssr(mmc);
 		if (err)
 			return err;
-
-		if (mmc->card_caps & MMC_MODE_HS)
-			mmc->tran_speed = 50000000;
-		else
-			mmc->tran_speed = 25000000;
+		if (mmc->card_caps & MMC_MODE_UHS) {
+			err = mmc_switch_uhs(mmc);
+			if (err)
+				return err;
+		} else  {
+			if (mmc->card_caps & MMC_MODE_HS)
+				mmc->tran_speed = 50000000;
+			else
+				mmc->tran_speed = 25000000;
+		}
 	} else if (mmc->version >= MMC_VERSION_4) {
 		/* Only version 4 of MMC supports wider bus widths */
 		int idx;
@@ -1541,7 +1726,9 @@ static int mmc_startup(struct mmc *mmc)
 		if (err)
 			return err;
 
-		if (mmc->card_caps & MMC_MODE_HS) {
+		if (mmc->card_caps & MMC_MODE_HS200) {
+			mmc->tran_speed = 200000000;
+		} else if (mmc->card_caps & MMC_MODE_HS) {
 			if (mmc->card_caps & MMC_MODE_HS_52MHz)
 				mmc->tran_speed = 52000000;
 			else
@@ -1550,6 +1737,15 @@ static int mmc_startup(struct mmc *mmc)
 	}
 
 	mmc_set_clock(mmc, mmc->tran_speed);
+
+	if ((mmc->card_caps & (MMC_MODE_UHS_SDR50 |
+			       MMC_MODE_UHS_SDR104 |
+			       MMC_MODE_HS200)) &&
+	    (mmc->cfg->host_caps & MMC_MODE_NEEDS_TUNING)) {
+		err = mmc_execute_tuning(mmc);
+		if (err)
+			return err;
+	}
 
 	/* Fix the block length for DDR mode */
 	if (mmc->ddr_mode) {

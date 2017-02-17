@@ -12,7 +12,7 @@
 /dts-v1/;
 
 #include "zynqmp.dtsi"
-#include "zynqmp-clk.dtsi"
+#include "zynqmp-clk-ccf.dtsi"
 #include <dt-bindings/interrupt-controller/irq.h>
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/phy/phy.h>
@@ -122,13 +122,6 @@
 	sdio_pwrseq: sdio_pwrseq {
 		compatible = "mmc-pwrseq-simple";
 		reset-gpios = <&max3107 1 GPIO_ACTIVE_LOW>; /* WIFI_EN */
-	};
-
-	dp_clk_wiz: dp_clk_wiz {
-		compatible = "fixed-clock";
-		#clock-cells = <0>;
-		clock-frequency = <267439000>;
-		clock-accuracy = <0x64>;
 	};
 };
 
@@ -477,7 +470,6 @@
 
 &xilinx_drm {
 	status = "okay";
-	clocks = <&dp_clk_wiz>;
 };
 
 &xlnx_dp {

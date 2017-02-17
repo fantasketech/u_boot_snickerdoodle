@@ -11,7 +11,7 @@
 /dts-v1/;
 
 #include "zynqmp.dtsi"
-#include "zynqmp-clk.dtsi"
+#include "zynqmp-clk-ccf.dtsi"
 #include <dt-bindings/phy/phy.h>
 
 / {
@@ -191,7 +191,6 @@
 	snps,usb3_lpm_capable;
 	phy-names = "usb3-phy";
 	phys = <&lane2 PHY_TYPE_USB3 0 2 26000000>;
-	dr_mode = "host";
 };
 
 &xilinx_drm {

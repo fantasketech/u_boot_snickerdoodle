@@ -23,4 +23,8 @@ void psu_init(void);
 
 void handoff_setup(void);
 
+void zynqmp_pmufw_version(void);
+int zynqmp_mmio_write(const u32 address, const u32 mask, const u32 value);
+int zynqmp_mmio_read(const u32 address, u32 *value);
+
 #endif /* _ASM_ARCH_SYS_PROTO_H */

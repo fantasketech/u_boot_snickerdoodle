@@ -64,6 +64,8 @@
 #define  SDHCI_CARD_STATE_STABLE	0x00020000
 #define  SDHCI_CARD_DETECT_PIN_LEVEL	0x00040000
 #define  SDHCI_WRITE_PROTECT	0x00080000
+#define  SDHCI_DATA_BUSY	0xF00000
+#define  SDHCI_CMD_BUSY		0x1000000
 
 #define SDHCI_HOST_CONTROL	0x28
 #define  SDHCI_CTRL_LED		0x01
@@ -146,6 +148,12 @@
 #define SDHCI_ACMD12_ERR	0x3C
 
 /* 3E-3F reserved */
+#define SDHCI_HOST_CTRL2	0x3E
+#define SDHCI_CTRL2_MODE_MASK	0x7
+
+#define SDHCI_18V_SIGNAL	0x8
+#define SDHCI_CTRL_EXEC_TUNING	0x0040
+#define SDHCI_CTRL_TUNED_CLK	0x80
 
 #define SDHCI_CAPABILITIES	0x40
 #define  SDHCI_TIMEOUT_CLK_MASK	0x0000003F
@@ -167,6 +175,12 @@
 #define  SDHCI_CAN_64BIT	0x10000000
 
 #define SDHCI_CAPABILITIES_1	0x44
+#define  SDHCI_SUPPORT_SDR50	0x00000001
+#define  SDHCI_SUPPORT_SDR104	0x00000002
+#define  SDHCI_SUPPORT_DDR50	0x00000004
+#define  SDHCI_USE_SDR50_TUNING		0x00002000
+#define  SDHCI_SUPPORT_HS400	0x80000000 /* Non-standard */
+
 #define  SDHCI_CLOCK_MUL_MASK	0x00FF0000
 #define  SDHCI_CLOCK_MUL_SHIFT	16
 
@@ -217,6 +231,7 @@
 #define SDHCI_QUIRK_WAIT_SEND_CMD	(1 << 6)
 #define SDHCI_QUIRK_NO_SIMULT_VDD_AND_POWER (1 << 7)
 #define SDHCI_QUIRK_USE_WIDE8		(1 << 8)
+#define SDHCI_QUIRK_NO_1_8_V		(1 << 9)
 
 /* to make gcc happy */
 struct sdhci_host;
@@ -246,7 +261,7 @@ struct sdhci_host {
 	unsigned int clk_mul;   /* Clock Multiplier value */
 	unsigned int clock;
 	struct mmc *mmc;
-	const struct sdhci_ops *ops;
+	struct sdhci_ops *ops;
 	int index;
 
 	int bus_width;
@@ -255,6 +270,8 @@ struct sdhci_host {
 
 	void (*set_control_reg)(struct sdhci_host *host);
 	void (*set_clock)(int dev_index, unsigned int div);
+	int (*platform_execute_tuning)(struct mmc *host, u8 opcode);
+	void (*set_delay)(struct sdhci_host *host, u8 uhsmode);
 	uint	voltages;
 
 	struct mmc_config cfg;

@@ -12,7 +12,7 @@
 /dts-v1/;
 
 #include "zynqmp.dtsi"
-#include "zynqmp-clk.dtsi"
+#include "zynqmp-clk-ccf.dtsi"
 #include <dt-bindings/interrupt-controller/irq.h>
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/phy/phy.h>
@@ -23,10 +23,11 @@
 
 	aliases {
 		gpio0 = &gpio;
-		i2c0 = &i2c0;
+		i2c0 = &i2c1;
 		rtc0 = &rtc;
 		serial0 = &uart1;
-		serial1 = &dcc;
+		serial1 = &uart0;
+		serial2 = &dcc;
 		spi0 = &spi0;
 		spi1 = &spi1;
 		usb0 = &usb0;
@@ -120,12 +121,30 @@
 		reset-gpios = <&gpio 7 GPIO_ACTIVE_LOW>; /* WIFI_EN */
 	};
 
-	/* FIXME - not tested */
-	dp_clk_wiz: dp_clk_wiz {
-		compatible = "fixed-clock";
-		#clock-cells = <0>;
-		clock-frequency = <267439000>;
-		clock-accuracy = <0x64>;
+	kim { /* Bluetooth driver for connection */
+		compatible = "kim";
+		status = "okay";
+		/*
+		 * FIXME: The following is complete CRAP since
+		 * the vendor driver doesn't follow the gpio
+		 * binding. Passing in a magic Linux gpio number
+		 * here until we fix the vendor driver.
+		 */
+		/* FIXME BT_EN*/
+		/* nshutdown_gpio = <&gpio 8 GPIO_ACTIVE_HIGH>; */
+		nshutdown_gpio = <346>; /* 338 base + MIO8 */
+		dev_name = "/dev/ttyPS1"; /* MIO2/3 */
+		flow_cntrl = <1>;
+		baud_rate = <3000000>;
+	};
+	/*
+	 * CONFIG_BT_WILINK - depends on
+	 * btwilink: add minimal device tree support
+	 * commit b3ef820a9310743d62cf50341f529ca17319dd77
+	 */
+	btwilink { /* Bluetooth driver itself */
+		status = "okay";
+		compatible = "btwilink";
 	};
 };
 
@@ -141,7 +160,7 @@
 	status = "okay";
 };
 
-&i2c0 {
+&i2c1 {
 	status = "okay";
 	clock-frequency = <100000>;
 	i2cswitch@75 { /* u11 */
@@ -320,9 +339,8 @@
 						regulator-always-on;
 					};
 				};
-	       		};
+			};
 			*/
-
 		};
 		i2csw_5: i2c@5 { /* i2c mw 75 0 20 */
 			#address-cells = <1>;
@@ -335,9 +353,6 @@
 				shunt-resistor = <10000>;
 				/* MIO31 is alert which should be routed to PMUFW */
 			};
-
-
-
 		};
 		i2csw_6: i2c@6 { /* i2c mw 75 0 40 */
 			#address-cells = <1>;
@@ -404,6 +419,10 @@
 	status = "okay";
 };
 
+&uart0 {
+	status = "okay";
+};
+
 &uart1 {
 	status = "okay";
 };
@@ -436,7 +455,6 @@
 
 &xilinx_drm {
 	status = "okay";
-	clocks = <&dp_clk_wiz>;
 };
 
 &xlnx_dp {
