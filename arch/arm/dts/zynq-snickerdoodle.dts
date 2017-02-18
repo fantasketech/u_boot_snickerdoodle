@@ -13,6 +13,22 @@
         model = "snickerdoodle";
         compatible = "xlnx,zynq-snickerdoodle", "xlnx,zynq-7000";
 
+	aliases {
+		serial0 = &uart0;
+		spi0 = &qspi;
+		mmc0 = &sdhci0;
+	};
+
+	memory {
+		device_type = "memory";
+		reg = <0x0 0x40000000>;
+	};
+
+	chosen {
+                bootargs = "";
+                stdout-path = "serial0:115200n8";
+        };
+
 	cpus {
 		cpu@0 {
 			operating-points = <
@@ -22,69 +38,15 @@
 			>;
 		};
 	};
-
-	chosen {
-                bootargs = "console=ttyPS0,115200n8 earlyprintk ramdisk_size=0x800000";
-                linux,stdout-path = &uart0;
-                stdout-path = &uart0;
-        };
-
-	aliases {
-		serial0 = &uart0;
-		spi0 = &qspi;
-		spi1 = &spi1;
-		mmc0 = &sdhci0;
-		mmc1 = &sdhci1;
-	};
-
-	memory {
-		device_type = "memory";
-		reg = <0x0 0x40000000>;
-	};
-
-	wlan_en_reg: fixedregulator@1 {
-                compatible = "regulator-fixed";
-                regulator-name = "wlan-en-regulator";
-                regulator-min-microvolt = <0x325aa0>;		/* Specified as 3.3V for driver, actually 1.8V */
-                regulator-max-microvolt = <0x325aa0>;
-                gpio = <&gpio0 0x9 0x4>;			/* WLAN_EN GPIO 9 on B5 */
-                startup-delay-us = <0x11170>;
-                enable-active-high;
-                linux,phandle = <0x6>;
-                phandle = <0x6>;
-        };
-};
-
-&intc {
-	num_cpus = <2>;
-	num_interrupts = <96>;
 };
 
 &clkc {
-	fclk-enable = <0x1>;
 	ps-clk-frequency = <33333333>;
-};
-
-&gpio0 {
-        interrupt-controller;
-        #interrupt-cells = <0x2>;
-        emio-gpio-width = <0x40>;
-        gpio-mask-high = <0x0>;
-        gpio-mask-low = <0x5600>;
-        xlnx,emio-gpio-width = <0x40>;
-        xlnx,mio-gpio-mask = <0x5600>;
-        linux,phandle = <0x4>;
-        phandle = <0x4>;
 };
 
 &uart0 {
 	u-boot,dm-pre-reloc;
 	status = "okay";
-	interrupt-parent = <&intc>;
-	xlnx,has-modem = <0x0>;
-	current-speed = <0x1c200>;				/* 115200 */
-	device_type = "serial";
-	port-number = <0x0>;
 };
 
 &sdhci0 {
@@ -92,64 +54,8 @@
         status = "okay";
 };
 
-&sdhci1 {
-	u-boot,dm-pre-reloc;
-        status = "okay";
-        vmmc-supply = <&wlan_en_reg>;
-	bus-width = <0x4>;
-        cap-power-off-card;
-	keep-power-in-suspend;
-
-	#address-cells = <0x1>;
-	#size-cells = <0x0>;
-        wlcore: wlcore@0 {
-                compatible = "wlcore", "ti,wl1831", "ti,wl1837";
-		reg = <2>;
-                interrupt-parent = <&gpio0>;
-		interrupts = <0x0 0x4>;
-        };
-};
-
-&spi1 {
-        u-boot,dm-pre-reloc;
-        status = "okay";
-};
-
 &qspi {
         u-boot,dm-pre-reloc;
         status = "okay";
-        is-dual = <0x0>;
-        num-cs = <0x1>;
-        xlnx,qspi-mode = <0x1>;
-
-        flash@0 {
-                compatible = "n25q128a11";
-                reg = <0x0>;
-                spi-tx-bus-width = <0x1>;
-                spi-rx-bus-width = <0x4>;
-                spi-max-frequency = <50000000>;
-                #address-cells = <0x1>;
-                #size-cells = <0x1>;
-                partition@qspi-fsbl-uboot {
-                        label = "qspi-fsbl-uboot";
-                        reg = <0x0 0x90000>;
-                };
-                partition@qspi-linux {
-                        label = "qspi-linux";
-                        reg = <0x90000 0x500000>;
-                };
-                partition@qspi-device-tree {
-                        label = "qspi-device-tree";
-                        reg = <0x590000 0x10000>;
-                };
-                partition@qspi-rootfs {
-                        label = "qspi-rootfs";
-                        reg = <0x5a0000 0x800000>;
-                };
-                partition@qspi-bitstream {
-                        label = "qspi-bitstream";
-                        reg = <0xda0000 0x260000>;
-                };
-        };
 };
 
