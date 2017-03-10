@@ -10,6 +10,8 @@
 #ifndef __CONFIG_ZYNQ_SNICKERDOODLE_H
 #define __CONFIG_ZYNQ_SNICKERDOODLE_H
 
+#define CONFIG_ENV_OFFSET             0xFB6000
+
 #include <configs/zynq-common.h>
 
 #endif /* __CONFIG_ZYNQ_SNICKERDOODLE_H */
