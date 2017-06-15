@@ -109,7 +109,8 @@ dtb-$(CONFIG_ARCH_ZYNQ) += zynq-zc702.dtb \
 	zynq-zc770-xm013.dtb \
 	zynq-snickerdoodle.dtb \
 	zynq-snickerdoodle-black.dtb \
-	zynq-snickerdoodle-blue.dtb
+	zynq-snickerdoodle-blue.dtb \
+	zynq-snickerdoodle-prime-piSmasher.dtb
 dtb-$(CONFIG_ARCH_ZYNQMP) += \
 	zynqmp-ep108.dtb			\
 	zynqmp-zcu100-revB.dtb			\

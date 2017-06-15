@@ -73,7 +73,7 @@
 	phy-handle = <&ethernet_phy0>;
 
 	ethernet_phy0: ethernet-phy@0 {
-		reg = <0x0>;
+		reg = <0>;
 	};
 };
 
@@ -84,7 +84,7 @@
 	phy-handle = <&ethernet_phy1>;
 
 	ethernet_phy1: ethernet-phy@0 {
-		reg = <0x0>;
+		reg = <1>;
 	};
 };
 
