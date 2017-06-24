@@ -1,7 +1,7 @@
 /*
- * snickerdoodle blue board DTS
+ * snickerdoodle black piSmasher board DTS
  *
- * Copyright (c) 2016 krtkl inc.
+ * Copyright (c) 2017 krtkl inc.
  *
  * SPDX-License-Identifier:     GPL-2.0+
  */
@@ -10,12 +10,11 @@
 /dts-v1/;
 /include/ "zynq-7000.dtsi"
 / {
-        model = "snickerdoodle blue";
-        compatible = "xlnx,zynq-snickerdoodle-blue", "xlnx,zynq-7000";
+        model = "snickerdoodle black piSmasher";
+        compatible = "krtkl,zynq-snickerdoodle-black", "xlnx,zynq-7000";
 
 	aliases {
 		ethernet0 = &gem0;
-		ethernet1 = &gem1;
 		serial0 = &uart0;
 		spi0 = &qspi;
 		mmc0 = &sdhci0;
@@ -28,15 +27,15 @@
 
 	memory@0 {
 		device_type = "memory";
-		reg = <0x0 0x20000000>;
+		reg = <0x0 0x40000000>;
 	};
 
 	cpus {
 		cpu@0 {
 			operating-points = <
 				/* kHz	uV */
-				666667	1000000
-				333334	1000000
+				866667	1000000
+				433334	1000000
 			>;
 		};
 	};
@@ -73,18 +72,7 @@
 	phy-handle = <&ethernet_phy0>;
 
 	ethernet_phy0: ethernet-phy@0 {
-		reg = <0>;
-	};
-};
-
-&gem1 {
-	u-boot,dm-pre-reloc;
-	status = "okay";
-	phy-mode = "rgmii-id";
-	phy-handle = <&ethernet_phy1>;
-
-	ethernet_phy1: ethernet-phy@0 {
-		reg = <1>;
+		reg = <0x0>;
 	};
 };
 

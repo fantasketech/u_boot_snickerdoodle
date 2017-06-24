@@ -1,5 +1,5 @@
 /*
- * snickerdoodle blue board DTS
+ * snickerdoodle Prime LE piSmasher board DTS
  *
  * Copyright (c) 2016 krtkl inc.
  *
@@ -10,12 +10,12 @@
 /dts-v1/;
 /include/ "zynq-7000.dtsi"
 / {
-        model = "snickerdoodle blue";
-        compatible = "xlnx,zynq-snickerdoodle-blue", "xlnx,zynq-7000";
+        model = "snickerdoodle Prime LE piSmasher";
+        compatible = "xlnx,zynq-snickerdoodle-prime-le", "xlnx,zynq-7000";
 
 	aliases {
 		ethernet0 = &gem0;
-		ethernet1 = &gem1;
+//		ethernet1 = &gem1;
 		serial0 = &uart0;
 		spi0 = &qspi;
 		mmc0 = &sdhci0;
@@ -77,16 +77,16 @@
 	};
 };
 
-&gem1 {
-	u-boot,dm-pre-reloc;
-	status = "okay";
-	phy-mode = "rgmii-id";
-	phy-handle = <&ethernet_phy1>;
+//&gem1 {
+//	u-boot,dm-pre-reloc;
+//	status = "okay";
+//	phy-mode = "rgmii-id";
+//	phy-handle = <&ethernet_phy1>;
 
-	ethernet_phy1: ethernet-phy@0 {
-		reg = <0x0>;
-	};
-};
+//	ethernet_phy1: ethernet-phy@0 {
+//		reg = <0x0>;
+//	};
+//};
 
 &usb0 {
 	u-boot,dm-pre-reloc;

@@ -1,7 +1,7 @@
 /*
- * snickerdoodle blue board DTS
+ * snickerdoodle Prime LE board DTS
  *
- * Copyright (c) 2016 krtkl inc.
+ * Copyright (c) 2017 krtkl inc.
  *
  * SPDX-License-Identifier:     GPL-2.0+
  */
@@ -10,8 +10,8 @@
 /dts-v1/;
 /include/ "zynq-7000.dtsi"
 / {
-        model = "snickerdoodle blue";
-        compatible = "xlnx,zynq-snickerdoodle-blue", "xlnx,zynq-7000";
+        model = "snickerdoodle Prime LE";
+        compatible = "xlnx,zynq-snickerdoodle-prime-le", "xlnx,zynq-7000";
 
 	aliases {
 		serial0 = &uart0;
