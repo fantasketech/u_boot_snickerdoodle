@@ -14,7 +14,6 @@
         compatible = "krtkl,zynq-snickerdoodle-black", "xlnx,zynq-7000";
 
 	aliases {
-		ethernet0 = &gem0;
 		serial0 = &uart0;
 		spi0 = &qspi;
 		mmc0 = &sdhci0;
@@ -63,17 +62,6 @@
 &qspi {
 	u-boot,dm-pre-reloc;
 	status = "okay";
-};
-
-&gem0 {
-	u-boot,dm-pre-reloc;
-	status = "okay";
-	phy-mode = "rgmii-id";
-	phy-handle = <&ethernet_phy0>;
-
-	ethernet_phy0: ethernet-phy@0 {
-		reg = <0x0>;
-	};
 };
 
 &usb0 {
