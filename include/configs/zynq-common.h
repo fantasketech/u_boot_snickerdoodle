@@ -212,9 +212,9 @@
 	"boot_image=BOOT.bin\0"	\
 	"loadbit_addr=0x100000\0"	\
 	"loadbootenv_addr=0x2000000\0" \
-	"kernel_size=0x500000\0"	\
-	"devicetree_size=0x20000\0"	\
-	"ramdisk_size=0x5E0000\0"	\
+        "kernel_size=0x670000\0"        \
+	"devicetree_size=0x10000\0"	\
+	"ramdisk_size=0x800000\0"	\
 	"boot_size=0xF00000\0"	\
 	"fdt_high=0x20000000\0"	\
 	"initrd_high=0x20000000\0"	\
@@ -240,10 +240,10 @@
 		"bootm ${kernel_load_address} ${ramdisk_load_address} ${devicetree_load_address}\0" \
 	"qspiboot=echo Copying Linux from QSPI flash to RAM... && " \
 		"sf probe 0 0 0 && " \
-		"sf read ${kernel_load_address} 0x100000 ${kernel_size} && " \
-		"sf read ${devicetree_load_address} 0x600000 ${devicetree_size} && " \
+		"sf read ${kernel_load_address} 0x90000 ${kernel_size} && " \
+		"sf read ${devicetree_load_address} 0x700000 ${devicetree_size} && " \
 		"echo Copying ramdisk... && " \
-		"sf read ${ramdisk_load_address} 0x620000 ${ramdisk_size} && " \
+		"sf read ${ramdisk_load_address} 0x710000 ${ramdisk_size} && " \
 		"bootm ${kernel_load_address} ${ramdisk_load_address} ${devicetree_load_address}\0" \
 	"uenvboot=" \
 		"if run loadbootenv; then " \
