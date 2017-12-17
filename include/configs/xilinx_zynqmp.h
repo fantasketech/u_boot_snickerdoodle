@@ -31,9 +31,6 @@
 #define CONFIG_SYS_MEMTEST_START	0
 #define CONFIG_SYS_MEMTEST_END		1000
 
-/* Have release address at the end of 256MB for now */
-#define CPU_RELEASE_ADDR	0xFFFFFF0
-
 #define CONFIG_SYS_INIT_SP_ADDR		CONFIG_SYS_TEXT_BASE
 
 /* Generic Timer Definitions - setup in EL3. Setup by ATF for other cases */
@@ -61,7 +58,6 @@
 #ifndef CONFIG_SPL_BUILD
 # define CONFIG_ISO_PARTITION
 #endif
-#define CONFIG_MP
 
 /* BOOTP options */
 #define CONFIG_BOOTP_BOOTFILESIZE
@@ -197,6 +193,7 @@
 	"kernel_size=0x1e00000\0" \
 	"fdt_size=0x80000\0" \
 	"bootenv=uEnv.txt\0" \
+	"bootargs=earlycon clk_ignore_unused\0" \
 	"loadbootenv=load mmc $sdbootdev:$partid ${loadbootenv_addr} ${bootenv}\0" \
 	"importbootenv=echo Importing environment from SD ...; " \
 		"env import -t ${loadbootenv_addr} $filesize\0" \
@@ -226,17 +223,18 @@
 		"load mmc $sdbootdev:$partid $fdt_addr system.dtb && " \
 		"load mmc $sdbootdev:$partid $kernel_addr Image && " \
 		"booti $kernel_addr - $fdt_addr\0" \
+	"emmcboot=run sdboot\0" \
 	"nandboot=nand info && nand read $fdt_addr $fdt_offset $fdt_size && " \
 		  "nand read $kernel_addr $kernel_offset $kernel_size && " \
 		  "booti $kernel_addr - $fdt_addr\0" \
-	"xen_prepare_dt=fdt addr $fdt_addr && fdt resize && " \
+	"xen_prepare_dt=fdt addr $fdt_addr && fdt resize 128 && " \
 		"fdt set /chosen \\\\#address-cells <1> && " \
 		"fdt set /chosen \\\\#size-cells <1> && " \
 		"fdt mknod /chosen dom0 && " \
 		"fdt set /chosen/dom0 compatible \"xen,linux-zimage\" \"xen,multiboot-module\" && " \
 		"fdt set /chosen/dom0 reg <0x80000 0x$filesize> && " \
-		"fdt set /chosen xen,xen-bootargs \"console=dtuart dtuart=serial0 dom0_mem=512M bootscrub=0 maxcpus=1 timer_slop=0\" && " \
-		"fdt set /chosen xen,dom0-bootargs \"console=serial0 earlycon=xen earlyprintk=xen maxcpus=1\"\0" \
+		"fdt set /chosen xen,xen-bootargs \"console=dtuart dtuart=serial0 dom0_mem=768M bootscrub=0 maxcpus=1 timer_slop=0\" && " \
+		"fdt set /chosen xen,dom0-bootargs \"console=hvc0 earlycon=xen earlyprintk=xen maxcpus=1 clk_ignore_unused\"\0" \
 	"xen_prepare_dt_qemu=run xen_prepare_dt && " \
 		"fdt set /cpus/cpu@1 device_type \"none\" && " \
 		"fdt set /cpus/cpu@2 device_type \"none\" && " \

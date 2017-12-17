@@ -38,12 +38,14 @@ static struct mm_region zynqmp_mem_map[] = {
 			 PTE_BLOCK_NON_SHARE |
 			 PTE_BLOCK_PXN | PTE_BLOCK_UXN
 	}, {
+#if defined(CONFIG_DEFINE_TCM_OCM_MMAP)
 		.virt = 0xffe00000UL,
 		.phys = 0xffe00000UL,
 		.size = 0x00200000UL,
 		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
 			 PTE_BLOCK_INNER_SHARE
 	}, {
+#endif
 		.virt = 0x400000000UL,
 		.phys = 0x400000000UL,
 		.size = 0x200000000UL,
@@ -75,6 +77,18 @@ u64 get_page_table_size(void)
 	return 0x14000;
 }
 
+#ifdef CONFIG_SYS_MEM_RSVD_FOR_MMU
+int reserve_mmu(void)
+{
+	initialize_tcm(TCM_LOCK);
+	memset((void *)ZYNQMP_TCM_BASE_ADDR, 0, ZYNQMP_TCM_SIZE);
+	gd->arch.tlb_size = PGTABLE_SIZE;
+	gd->arch.tlb_addr = ZYNQMP_TCM_BASE_ADDR;
+
+	return 0;
+}
+#endif
+
 static unsigned int zynqmp_get_silicon_version_secure(void)
 {
 	u32 ver;
@@ -105,13 +119,11 @@ unsigned int zynqmp_get_silicon_version(void)
 	return ZYNQMP_CSU_VERSION_SILICON;
 }
 
-#define PAYLOAD_ARG_CNT		5
 #define ZYNQMP_MMIO_READ	0xC2000014
 #define ZYNQMP_MMIO_WRITE	0xC2000013
 
-#ifndef CONFIG_SPL_BUILD
-static int invoke_smc(u32 pm_api_id, u32 arg0, u32 arg1, u32 arg2, u32 arg3,
-			u32 *ret_payload)
+int __maybe_unused invoke_smc(u32 pm_api_id, u32 arg0, u32 arg1, u32 arg2,
+			      u32 arg3, u32 *ret_payload)
 {
 	/*
 	 * Added SIP service call Function Identifier
@@ -171,11 +183,38 @@ void zynqmp_pmufw_version(void)
 }
 #endif
 
+static int zynqmp_mmio_rawwrite(const u32 address,
+		      const u32 mask,
+		      const u32 value)
+{
+	u32 data;
+	u32 value_local = value;
+
+	zynqmp_mmio_read(address, &data);
+	data &= ~mask;
+	value_local &= mask;
+	value_local |= data;
+	writel(value_local, (ulong)address);
+	return 0;
+}
+
+static int zynqmp_mmio_rawread(const u32 address, u32 *value)
+{
+	*value = readl((ulong)address);
+	return 0;
+}
+
 int zynqmp_mmio_write(const u32 address,
 		      const u32 mask,
 		      const u32 value)
 {
-	return invoke_smc(ZYNQMP_MMIO_WRITE, address, mask, value, 0, NULL);
+	if (IS_ENABLED(CONFIG_SPL_BUILD) || current_el() == 3)
+		return zynqmp_mmio_rawwrite(address, mask, value);
+	else
+		return invoke_smc(ZYNQMP_MMIO_WRITE, address, mask,
+				  value, 0, NULL);
+
+	return -EINVAL;
 }
 
 int zynqmp_mmio_read(const u32 address, u32 *value)
@@ -186,23 +225,13 @@ int zynqmp_mmio_read(const u32 address, u32 *value)
 	if (!value)
 		return -EINVAL;
 
-	ret = invoke_smc(ZYNQMP_MMIO_READ, address, 0, 0, 0, ret_payload);
-	*value = ret_payload[1];
+	if (IS_ENABLED(CONFIG_SPL_BUILD) || current_el() == 3) {
+		ret = zynqmp_mmio_rawread(address, value);
+	} else {
+		ret = invoke_smc(ZYNQMP_MMIO_READ, address, 0, 0,
+				 0, ret_payload);
+		*value = ret_payload[1];
+	}
 
 	return ret;
 }
-#else
-int zynqmp_mmio_write(const u32 address,
-		      const u32 mask,
-		      const u32 value)
-{
-	panic_str("MMIO write not implemented\n");
-	return 0;
-}
-
-int zynqmp_mmio_read(const u32 address, u32 *value)
-{
-	*value = readl((ulong)address);
-	return 0;
-}
-#endif

@@ -68,12 +68,16 @@ static int dwc3_generic_peripheral_ofdata_to_platdata(struct udevice *dev)
 	priv->regs += DWC3_GLOBALS_REGS_START;
 
 	priv->maximum_speed = usb_get_maximum_speed(node);
-	if (priv->maximum_speed < 0) {
+	if (priv->maximum_speed == USB_SPEED_UNKNOWN) {
 		error("Invalid usb maximum speed\n");
-		return priv->maximum_speed;
+		return -ENODEV;
 	}
 
-	priv->dr_mode = USB_DR_MODE_PERIPHERAL;
+	priv->dr_mode = usb_get_dr_mode(node);
+	if (priv->dr_mode == USB_DR_MODE_UNKNOWN) {
+		error("Invalid usb mode setup\n");
+		return -ENODEV;
+	}
 
 	return 0;
 }

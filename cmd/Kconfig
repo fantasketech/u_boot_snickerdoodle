@@ -253,7 +253,9 @@ config CMD_XIMG
 	  Extract a part of a multi-image.
 
 config CMD_POWEROFF
-	bool
+	bool "poweroff"
+	help
+	  Poweroff/Shutdown the system
 
 endmenu
 
@@ -448,6 +450,24 @@ config CMD_FPGA
 	help
 	  FPGA support.
 
+config CMD_FPGA_LOADP
+	bool "fpga loadp"
+	help
+	  Enables the fpga loadp command which is used to load partial
+	  bitstreams on to FPGA.
+
+config CMD_FPGA_LOADBP
+	bool "fpga loadbp"
+	help
+	  Enables the fpga loadbp command which is used to load partial
+	  bitstreams on to FPGA in bit format. Xilinx only.
+
+config CMD_FPGA_LOAD_SECURE
+	bool "fpga loads"
+	help
+	  Enables the fpga loade command which is used to load encrypted
+	  bitstreams on to FPGA.
+
 config CMD_REMOTEPROC
 	bool "remoteproc"
 	depends on REMOTEPROC
@@ -570,6 +590,12 @@ endmenu
 
 menu "Misc commands"
 
+config CMD_AES
+	bool "aes"
+	help
+	  Enable comamnd support for encrypting and
+	  decrypting of images.
+
 config CMD_AMBAPP
 	bool "ambapp"
 	depends on LEON3
@@ -620,6 +646,13 @@ config CMD_MISC
 	default y
 	help
 	  Delay execution for some time
+
+config MP
+	bool "support for multiprocessor"
+	help
+	  This provides an option to brinup
+	  different processors in multiprocessor
+	  cases.
 
 config CMD_TIMER
 	bool "timer"

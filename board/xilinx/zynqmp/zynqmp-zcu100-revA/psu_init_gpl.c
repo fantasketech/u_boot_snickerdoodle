@@ -19,7 +19,7 @@
 ******************************************************************************/
 
 #include <xil_io.h>
-/* #include <sleep.h> */
+#include <sleep.h>
 #include "psu_init_gpl.h"
 
 int mask_pollOnValue(u32 add , u32 mask, u32 value );
@@ -38,7 +38,7 @@ static void PSU_Mask_Write (unsigned long offset, unsigned long mask, unsigned l
 	RegVal |= (val & mask);
 	Xil_Out32 (offset, RegVal);
 }
-/*
+
 	void prog_reg (unsigned long addr, unsigned long mask, unsigned long shift, unsigned long value) {
 	    int rdata =0;
 	    rdata  = Xil_In32(addr);
@@ -46,7 +46,7 @@ static void PSU_Mask_Write (unsigned long offset, unsigned long mask, unsigned l
 	    rdata  = rdata | (value << shift);
 	    Xil_Out32(addr,rdata);
 	    }
-*/
+
 unsigned long psu_pll_init_data() {
 		// : RPLL INIT
 		/*Register : RPLL_CFG @ 0XFF5E0034</p>

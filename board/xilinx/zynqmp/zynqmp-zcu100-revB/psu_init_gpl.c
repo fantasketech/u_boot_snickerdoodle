@@ -19,7 +19,7 @@
 ******************************************************************************/
 
 #include <xil_io.h>
-/* #include <sleep.h> */
+#include <sleep.h>
 #include "psu_init_gpl.h"
 
 int mask_pollOnValue(u32 add , u32 mask, u32 value );
@@ -38,7 +38,7 @@ static void PSU_Mask_Write (unsigned long offset, unsigned long mask, unsigned l
 	RegVal |= (val & mask);
 	Xil_Out32 (offset, RegVal);
 }
-/*
+
 	void prog_reg (unsigned long addr, unsigned long mask, unsigned long shift, unsigned long value) {
 	    int rdata =0;
 	    rdata  = Xil_In32(addr);
@@ -46,7 +46,7 @@ static void PSU_Mask_Write (unsigned long offset, unsigned long mask, unsigned l
 	    rdata  = rdata | (value << shift);
 	    Xil_Out32(addr,rdata);
 	    }
-*/
+
 unsigned long psu_pll_init_data() {
 		// : RPLL INIT
 		/*Register : RPLL_CFG @ 0XFF5E0034</p>
@@ -12905,7 +12905,7 @@ unsigned long psu_mio_init_data() {
 			| 0x00000000U << IOU_SLCR_MIO_PIN_34_L2_SEL_SHIFT
 			| 0x00000000U << IOU_SLCR_MIO_PIN_34_L3_SEL_SHIFT
 			|  0 ) & RegMask); */
-		PSU_Mask_Write (IOU_SLCR_MIO_PIN_34_OFFSET ,0x000000FEU ,0x00000000U);
+		PSU_Mask_Write (IOU_SLCR_MIO_PIN_34_OFFSET ,0x000000FFU ,0x00000008U);
 	/*############################################################################################################################ */
 
 		/*Register : MIO_PIN_35 @ 0XFF18008C</p>
@@ -16836,7 +16836,7 @@ unsigned long psu_peripherals_init_data() {
 
 		RegVal = ((0x000000C7U << IOU_SLCR_SD_CONFIG_REG1_SD0_BASECLK_SHIFT
 			|  0 ) & RegMask); */
-		PSU_Mask_Write (IOU_SLCR_SD_CONFIG_REG1_OFFSET ,0x00007F80U ,0x00006380U);
+		PSU_Mask_Write (IOU_SLCR_SD_CONFIG_REG1_OFFSET ,0x00007FFEU ,0x00006450U);
 	/*############################################################################################################################ */
 
 		// : SD1 BASE CLOCK

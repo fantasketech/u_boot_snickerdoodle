@@ -196,7 +196,7 @@ static u32 phy_setup_op(struct zynq_gem_priv *priv, u32 phy_addr, u32 regnum,
 	int err;
 
 	err = wait_for_bit(__func__, &regs->nwsr, ZYNQ_GEM_NWSR_MDIOIDLE_MASK,
-			    true, 20000, true);
+			    true, 20000, false);
 	if (err)
 		return err;
 
@@ -209,7 +209,7 @@ static u32 phy_setup_op(struct zynq_gem_priv *priv, u32 phy_addr, u32 regnum,
 	writel(mgtcr, &regs->phymntnc);
 
 	err = wait_for_bit(__func__, &regs->nwsr, ZYNQ_GEM_NWSR_MDIOIDLE_MASK,
-			    true, 20000, true);
+			    true, 20000, false);
 	if (err)
 		return err;
 
@@ -411,10 +411,6 @@ static int zynq_gem_init(struct udevice *dev)
 		dummy_rx_bd->addr = ZYNQ_GEM_RXBUF_WRAP_MASK |
 				ZYNQ_GEM_RXBUF_NEW_MASK;
 		dummy_rx_bd->status = 0;
-		flush_dcache_range((ulong)&dummy_tx_bd, (ulong)&dummy_tx_bd +
-				   sizeof(dummy_tx_bd));
-		flush_dcache_range((ulong)&dummy_rx_bd, (ulong)&dummy_rx_bd +
-				   sizeof(dummy_rx_bd));
 
 		writel((ulong)dummy_tx_bd, &regs->transmit_q1_ptr);
 		writel((ulong)dummy_rx_bd, &regs->receive_q1_ptr);
@@ -469,9 +465,11 @@ static int zynq_gem_init(struct udevice *dev)
 		zynq_slcr_gem_clk_setup((ulong)priv->iobase !=
 					ZYNQ_GEM_BASEADDR0, clk_rate);
 #else
+	{
 		ret = clk_set_rate(&priv->clk, clk_rate);
 		if (IS_ERR_VALUE(ret))
 			return -1;
+	}
 #endif
 
 	setbits_le32(&regs->nwctrl, ZYNQ_GEM_NWCTRL_RXEN_MASK |
@@ -595,14 +593,12 @@ __weak int zynq_board_read_rom_ethaddr(unsigned char *ethaddr)
 
 static int zynq_gem_read_rom_mac(struct udevice *dev)
 {
-	int retval;
 	struct eth_pdata *pdata = dev_get_platdata(dev);
 
-	retval = zynq_board_read_rom_ethaddr(pdata->enetaddr);
-	if (retval == -ENOSYS)
-		retval = 0;
+	if (!pdata)
+		return -ENOSYS;
 
-	return retval;
+	return zynq_board_read_rom_ethaddr(pdata->enetaddr);
 }
 
 static int zynq_gem_miiphy_read(struct mii_dev *bus, int addr,

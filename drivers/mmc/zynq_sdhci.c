@@ -14,6 +14,7 @@
 #include <sdhci.h>
 #include <mmc.h>
 #include <asm/arch/hardware.h>
+#include <asm/arch/sys_proto.h>
 #include <asm/io.h>
 #include <zynqmp_tap_delay.h>
 #include "mmc_private.h"
@@ -34,6 +35,7 @@ struct arasan_sdhci_priv {
 	u8 deviceid;
 	u8 bank;
 	u8 no_1p8;
+	bool pwrseq;
 };
 
 #if defined(CONFIG_ARCH_ZYNQMP)
@@ -144,12 +146,23 @@ static int arasan_sdhci_execute_tuning(struct mmc *mmc, u8 opcode)
 	return 0;
 }
 
-static void arasan_sdhci_set_tapdelay(struct sdhci_host *host, u8 uhsmode)
+static void arasan_sdhci_set_tapdelay(struct sdhci_host *host)
 {
 	struct arasan_sdhci_priv *priv = dev_get_priv(host->mmc->dev);
+	struct mmc *mmc = (struct mmc *)host->mmc;
+	u8 uhsmode;
 
-	debug("%s, %d:%d, mode:%d\n", __func__, priv->deviceid, priv->bank,
-	      uhsmode);
+	if (mmc->is_uhs)
+		uhsmode = mmc->uhsmode;
+	else if (mmc->card_caps & MMC_MODE_HS)
+		uhsmode = MMC_TIMING_HS;
+	else if (mmc->card_caps & MMC_MODE_HS200)
+		uhsmode = MMC_TIMING_HS200;
+	else
+		return;
+
+	debug("%s, host:%s devId:%d, bank:%d, mode:%d\n", __func__, host->name,
+	      priv->deviceid, priv->bank, uhsmode);
 	if ((uhsmode >= MMC_TIMING_UHS_SDR25) &&
 	    (uhsmode <= MMC_TIMING_HS200))
 		arasan_zynqmp_set_tapdelay(priv->deviceid, uhsmode,
@@ -168,7 +181,8 @@ static int arasan_sdhci_probe(struct udevice *dev)
 	host = priv->host;
 
 	host->quirks = SDHCI_QUIRK_WAIT_SEND_CMD |
-		       SDHCI_QUIRK_BROKEN_R1B;
+		       SDHCI_QUIRK_BROKEN_R1B |
+		       SDHCI_QUIRK_USE_ACMD12;
 
 #ifdef CONFIG_ZYNQ_HISPD_BROKEN
 	host->quirks |= SDHCI_QUIRK_NO_HISPD_BIT;
@@ -191,7 +205,16 @@ static int arasan_sdhci_probe(struct udevice *dev)
 	host->platform_execute_tuning = arasan_sdhci_execute_tuning;
 #endif
 
-	return sdhci_probe(dev);
+	if (priv->pwrseq) {
+		debug("Unsupported mmcpwrseq for %s\n", dev->name);
+		return 0;
+	}
+
+	ret = sdhci_probe(dev);
+	if (ret)
+		return ret;
+
+	return mmc_init(&plat->mmc);
 }
 
 static int arasan_sdhci_ofdata_to_platdata(struct udevice *dev)
@@ -209,10 +232,17 @@ static int arasan_sdhci_ofdata_to_platdata(struct udevice *dev)
 					"xlnx,device_id", -1);
 	priv->bank = fdtdec_get_int(gd->fdt_blob, dev->of_offset,
 				    "xlnx,mio_bank", -1);
-	if (fdt_get_property(gd->fdt_blob, dev->of_offset, "no-1-8-v", NULL))
+	if (fdt_get_property(gd->fdt_blob, dev->of_offset, "no-1-8-v", NULL)
+#if defined(CONFIG_ARCH_ZYNQMP)
+	    || (chip_id(VERSION) == ZYNQMP_SILICON_V1)
+#endif
+	    )
 		priv->no_1p8 = 1;
 	else
 		priv->no_1p8 = 0;
+
+	if (fdt_get_property(gd->fdt_blob, dev->of_offset, "mmc-pwrseq", NULL))
+		priv->pwrseq = true;
 
 	return 0;
 }
