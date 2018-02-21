@@ -6,7 +6,7 @@
  */
 
 #include <common.h>
-#include <aes.h>
+#include <uboot_aes.h>
 #include <sata.h>
 #include <ahci.h>
 #include <scsi.h>
@@ -14,6 +14,7 @@
 #include <asm/arch/clk.h>
 #include <asm/arch/hardware.h>
 #include <asm/arch/sys_proto.h>
+#include <asm/arch/psu_init_gpl.h>
 #include <asm/io.h>
 #include <usb.h>
 #include <dwc3-uboot.h>
@@ -28,8 +29,8 @@ DECLARE_GLOBAL_DATA_PTR;
 static xilinx_desc zynqmppl = XILINX_ZYNQMP_DESC;
 
 static const struct {
-	uint32_t id;
-	uint32_t ver;
+	u32 id;
+	u32 ver;
 	char *name;
 } zynqmp_devices[] = {
 	{
@@ -223,7 +224,7 @@ int chip_id(unsigned char id)
 	!defined(CONFIG_SPL_BUILD)
 static char *zynqmp_get_silicon_idcode_name(void)
 {
-	uint32_t i, id, ver;
+	u32 i, id, ver;
 
 	id = chip_id(IDCODE);
 	ver = chip_id(IDCODE2);
@@ -238,15 +239,16 @@ static char *zynqmp_get_silicon_idcode_name(void)
 
 int board_early_init_f(void)
 {
+	int ret = 0;
 #if !defined(CONFIG_SPL_BUILD) && defined(CONFIG_CLK_ZYNQMP)
 	zynqmp_pmufw_version();
 #endif
 
-#if defined(CONFIG_SPL_BUILD) || defined(CONFIG_ZYNQMP_PSU_INIT_ENABLED)
-	psu_init();
+#if defined(CONFIG_ZYNQMP_PSU_INIT_ENABLED)
+	ret = psu_init();
 #endif
 
-	return 0;
+	return ret;
 }
 
 #define ZYNQMP_VERSION_SIZE	9
@@ -261,10 +263,10 @@ int board_init(void)
 	if (current_el() != 3) {
 		static char version[ZYNQMP_VERSION_SIZE];
 
-		strncat(version, "xczu", 4);
+		strncat(version, "zu", 2);
 		zynqmppl.name = strncat(version,
 					zynqmp_get_silicon_idcode_name(),
-					ZYNQMP_VERSION_SIZE - 5);
+					ZYNQMP_VERSION_SIZE - 3);
 		printf("Chip ID:\t%s\n", zynqmppl.name);
 		fpga_init();
 		fpga_add(fpga_xilinx, &zynqmppl);
@@ -278,10 +280,13 @@ int board_early_init_r(void)
 {
 	u32 val;
 
+	if (current_el() != 3)
+		return 0;
+
 	val = readl(&crlapb_base->timestamp_ref_ctrl);
 	val &= ZYNQMP_CRL_APB_TIMESTAMP_REF_CTRL_CLKACT;
 
-	if (current_el() == 3 && !val) {
+	if (!val) {
 		val = readl(&crlapb_base->timestamp_ref_ctrl);
 		val |= ZYNQMP_CRL_APB_TIMESTAMP_REF_CTRL_CLKACT;
 		writel(val, &crlapb_base->timestamp_ref_ctrl);
@@ -313,9 +318,9 @@ int zynq_board_read_rom_ethaddr(unsigned char *ethaddr)
 }
 
 #if !defined(CONFIG_SYS_SDRAM_BASE) && !defined(CONFIG_SYS_SDRAM_SIZE)
-void dram_init_banksize(void)
+int dram_init_banksize(void)
 {
-	fdtdec_setup_memory_banksize();
+	return fdtdec_setup_memory_banksize();
 }
 
 int dram_init(void)
@@ -344,6 +349,7 @@ int board_late_init(void)
 	u8 bootmode;
 	const char *mode;
 	char *new_targets;
+	char *env_targets;
 	int ret;
 
 	if (!(gd->flags & GD_FLG_ENV_DEFAULT)) {
@@ -355,14 +361,14 @@ int board_late_init(void)
 
 	switch (ver) {
 	case ZYNQMP_CSU_VERSION_VELOCE:
-		setenv("setup", "setenv baudrate 4800 && setenv bootcmd run veloce");
+		env_set("setup", "setenv baudrate 4800 && env_set bootcmd run veloce");
 	case ZYNQMP_CSU_VERSION_EP108:
 	case ZYNQMP_CSU_VERSION_SILICON:
 	case ZYNQMP_CSU_VERSION_QEMU:
-		setenv("setup", "setenv partid auto");
+		env_set("setup", "setenv partid auto");
 		break;
 	default:
-		setenv("setup", "setenv partid 0");
+		env_set("setup", "setenv partid 0");
 	}
 
 	ret = zynqmp_mmio_read((ulong)&crlapb_base->boot_mode, &reg);
@@ -379,28 +385,28 @@ int board_late_init(void)
 	case USB_MODE:
 		puts("USB_MODE\n");
 		mode = "usb";
-		setenv("modeboot", "usb_dfu_spl");
+		env_set("modeboot", "usb_dfu_spl");
 		break;
 	case JTAG_MODE:
 		puts("JTAG_MODE\n");
 		mode = "pxe dhcp";
-		setenv("modeboot", "jtagboot");
+		env_set("modeboot", "jtagboot");
 		break;
 	case QSPI_MODE_24BIT:
 	case QSPI_MODE_32BIT:
 		mode = "qspi0";
 		puts("QSPI_MODE\n");
-		setenv("modeboot", "qspiboot");
+		env_set("modeboot", "qspiboot");
 		break;
 	case EMMC_MODE:
 		puts("EMMC_MODE\n");
 		mode = "mmc0";
-		setenv("modeboot", "emmcboot");
+		env_set("modeboot", "emmcboot");
 		break;
 	case SD_MODE:
 		puts("SD_MODE\n");
 		mode = "mmc0";
-		setenv("modeboot", "sdboot");
+		env_set("modeboot", "sdboot");
 		break;
 	case SD1_LSHFT_MODE:
 		puts("LVL_SHFT_");
@@ -409,16 +415,16 @@ int board_late_init(void)
 		puts("SD_MODE1\n");
 #if defined(CONFIG_ZYNQ_SDHCI0) && defined(CONFIG_ZYNQ_SDHCI1)
 		mode = "mmc1";
-		setenv("sdbootdev", "1");
+		env_set("sdbootdev", "1");
 #else
 		mode = "mmc0";
 #endif
-		setenv("modeboot", "sdboot");
+		env_set("modeboot", "sdboot");
 		break;
 	case NAND_MODE:
 		puts("NAND_MODE\n");
 		mode = "nand0";
-		setenv("modeboot", "nandboot");
+		env_set("modeboot", "nandboot");
 		break;
 	default:
 		mode = "";
@@ -430,12 +436,24 @@ int board_late_init(void)
 	 * One terminating char + one byte for space between mode
 	 * and default boot_targets
 	 */
-	new_targets = calloc(1, strlen(mode) +
-				strlen(getenv("boot_targets")) + 2);
+	env_targets = env_get("boot_targets");
+	if (env_targets) {
+		new_targets = calloc(1, strlen(mode) +
+				     strlen(env_targets) + 2);
+		sprintf(new_targets, "%s %s", mode, env_targets);
+	} else {
+		new_targets = calloc(1, strlen(mode) + 2);
+		sprintf(new_targets, "%s", mode);
+	}
 
-	sprintf(new_targets, "%s %s", mode, getenv("boot_targets"));
-	setenv("boot_targets", new_targets);
+	env_set("boot_targets", new_targets);
 
+	return 0;
+}
+
+int checkboard(void)
+{
+	puts("Board: Xilinx ZynqMP\n");
 	return 0;
 }
 
@@ -469,14 +487,8 @@ int aes_decrypt_hw(u8 *key_ptr, u8 *src_ptr, u8 *dst_ptr, u32 len)
 	ret = invoke_smc(ZYNQMP_SIP_SVC_PM_SECURE_LOAD, src_lo, src_hi, wlen,
 			 ZYNQMP_PM_SECURE_AES, ret_payload);
 	if (ret)
-		debug("aes_decrypt_hw fail\n");
+		printf("Fail: %s: %d\n", __func__, ret);
 
 	return ret;
 }
 #endif
-
-int checkboard(void)
-{
-	puts("Board: Xilinx ZynqMP\n");
-	return 0;
-}

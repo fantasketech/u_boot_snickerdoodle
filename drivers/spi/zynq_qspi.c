@@ -99,6 +99,9 @@ DECLARE_GLOBAL_DATA_PTR;
 #define ZYNQ_QSPI_MIO_NUM_QSPI1_DIO	3
 #define ZYNQ_QSPI_MIO_NUM_QSPI1_CS_DIO	1
 
+#define ZYNQ_QSPI_MAX_BAUD_RATE		0x7
+#define ZYNQ_QSPI_DEFAULT_BAUD_RATE	0x2
+
 /* QSPI register offsets */
 struct zynq_qspi_regs {
 	u32 confr;	/* 0x00 */
@@ -160,19 +163,19 @@ static int zynq_qspi_ofdata_to_platdata(struct udevice *bus)
 	debug("%s\n", __func__);
 	plat->regs = (struct zynq_qspi_regs *)ZYNQ_QSPI_BASEADDR;
 
-	is_dual = fdtdec_get_int(gd->fdt_blob, bus->of_offset, "is-dual", -1);
+	is_dual = fdtdec_get_int(gd->fdt_blob, dev_of_offset(bus), "is-dual", -1);
 	if (is_dual < 0)
 		plat->is_dual = SF_SINGLE_FLASH;
 	else if (is_dual == 1)
 		plat->is_dual = SF_DUAL_PARALLEL_FLASH;
 	else
-		if (fdtdec_get_int(gd->fdt_blob, bus->of_offset,
+		if (fdtdec_get_int(gd->fdt_blob, dev_of_offset(bus),
 				   "is-stacked", -1) < 0)
 			plat->is_dual = SF_SINGLE_FLASH;
 		else
 			plat->is_dual = SF_DUAL_STACKED_FLASH;
 
-	offset = fdt_first_subnode(gd->fdt_blob, bus->of_offset);
+	offset = fdt_first_subnode(gd->fdt_blob, dev_of_offset(bus));
 
 	value = fdtdec_get_uint(gd->fdt_blob, offset, "spi-rx-bus-width", 1);
 	switch (value) {
@@ -356,6 +359,9 @@ static int zynq_qspi_set_speed(struct udevice *bus, uint speed)
 		       (2 << baud_rate_val)) > speed))
 			baud_rate_val++;
 
+		if (baud_rate_val > ZYNQ_QSPI_MAX_BAUD_RATE)
+			baud_rate_val = ZYNQ_QSPI_DEFAULT_BAUD_RATE;
+
 		plat->speed_hz = speed / (2 << baud_rate_val);
 	}
 	confr &= ~ZYNQ_QSPI_CONFIG_BAUD_DIV_MASK;
@@ -413,12 +419,16 @@ static void zynq_qspi_copy_read_data(struct zynq_qspi_priv *priv, u32 data, u8 s
 			priv->rxbuf += 1;
 			break;
 		case 2:
-			*((u16 *)priv->rxbuf) = data;
-			priv->rxbuf += 2;
+			*((u8 *)priv->rxbuf) = data;
+			priv->rxbuf += 1;
+			*((u8 *)priv->rxbuf) = (u8)(data >> 8);
+			priv->rxbuf += 1;
 			break;
 		case 3:
-			*((u16 *)priv->rxbuf) = data;
-			priv->rxbuf += 2;
+			*((u8 *)priv->rxbuf) = data;
+			priv->rxbuf += 1;
+			*((u8 *)priv->rxbuf) = (u8)(data >> 8);
+			priv->rxbuf += 1;
 			byte3 = (u8)(data >> 16);
 			*((u8 *)priv->rxbuf) = byte3;
 			priv->rxbuf += 1;
@@ -455,13 +465,17 @@ static void zynq_qspi_copy_write_data(struct  zynq_qspi_priv *priv,
 			*data |= 0xFFFFFF00;
 			break;
 		case 2:
-			*data = *((u16 *)priv->txbuf);
-			priv->txbuf += 2;
+			*data = *((u8 *)priv->txbuf);
+			priv->txbuf += 1;
+			*data |= (*((u8 *)priv->txbuf) << 8);
+			priv->txbuf += 1;
 			*data |= 0xFFFF0000;
 			break;
 		case 3:
-			*data = *((u16 *)priv->txbuf);
-			priv->txbuf += 2;
+			*data = *((u8 *)priv->txbuf);
+			priv->txbuf += 1;
+			*data |= (*((u8 *)priv->txbuf) << 8);
+			priv->txbuf += 1;
 			*data |= (*((u8 *)priv->txbuf) << 16);
 			priv->txbuf += 1;
 			*data |= 0xFF000000;

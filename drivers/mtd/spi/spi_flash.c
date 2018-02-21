@@ -152,6 +152,27 @@ static int write_cr(struct spi_flash *flash, u8 wc)
 #endif
 
 #ifdef CONFIG_SPI_FLASH_BAR
+/*
+ * This "clean_bar" is necessary in a situation when one was accessing
+ * spi flash memory > 16 MiB by using Bank Address Register's BA24 bit.
+ *
+ * After it the BA24 bit shall be cleared to allow access to correct
+ * memory region after SW reset (by calling "reset" command).
+ *
+ * Otherwise, the BA24 bit may be left set and then after reset, the
+ * ROM would read/write/erase SPL from 16 MiB * bank_sel address.
+ */
+static int clean_bar(struct spi_flash *flash)
+{
+	u8 cmd, bank_sel = 0;
+
+	if (flash->bank_curr == 0)
+		return 0;
+	cmd = flash->bank_write_cmd;
+
+	return spi_flash_write_common(flash, &cmd, 1, &bank_sel, 1);
+}
+
 static int write_bar(struct spi_flash *flash, u32 offset)
 {
 	u8 cmd, bank_sel, upage_curr;
@@ -426,10 +447,13 @@ int spi_flash_write_common(struct spi_flash *flash, const u8 *cmd,
 
 int spi_flash_cmd_erase_ops(struct spi_flash *flash, u32 offset, size_t len)
 {
-	u32 erase_size, erase_addr, bank_addr;
+	u32 erase_size, erase_addr;
 	u8 cmd[SPI_FLASH_CMD_LEN + 1];
 	int ret = -1;
 	u32 cmdlen;
+#if defined(CONFIG_SF_DUAL_FLASH) || defined(CONFIG_SPI_FLASH_BAR)
+	u32 bank_addr;
+#endif
 
 	erase_size = flash->erase_size;
 	if (offset % erase_size || len % erase_size) {
@@ -448,7 +472,9 @@ int spi_flash_cmd_erase_ops(struct spi_flash *flash, u32 offset, size_t len)
 	cmd[0] = flash->erase_cmd;
 	while (len) {
 		erase_addr = offset;
+#if defined(CONFIG_SF_DUAL_FLASH) || defined(CONFIG_SPI_FLASH_BAR)
 		bank_addr = offset;
+#endif
 
 #ifdef CONFIG_SF_DUAL_FLASH
 		if (flash->dual_flash > SF_SINGLE_FLASH)
@@ -487,6 +513,12 @@ int spi_flash_cmd_erase_ops(struct spi_flash *flash, u32 offset, size_t len)
 		len -= erase_size;
 	}
 
+	if (flash->spi->bytemode != SPI_4BYTE_MODE) {
+#ifdef CONFIG_SPI_FLASH_BAR
+		ret = clean_bar(flash);
+#endif
+	}
+
 	return ret;
 }
 
@@ -494,11 +526,14 @@ int spi_flash_cmd_write_ops(struct spi_flash *flash, u32 offset,
 		size_t len, const void *buf)
 {
 	unsigned long byte_addr, page_size;
-	u32 write_addr, bank_addr;
+	u32 write_addr;
 	size_t chunk_len, actual;
 	u8 cmd[SPI_FLASH_CMD_LEN + 1];
 	u32 cmdlen;
 	int ret = -1;
+#if defined(CONFIG_SF_DUAL_FLASH) || defined(CONFIG_SPI_FLASH_BAR)
+	u32 bank_addr;
+#endif
 
 	page_size = flash->page_size;
 
@@ -513,7 +548,9 @@ int spi_flash_cmd_write_ops(struct spi_flash *flash, u32 offset,
 	cmd[0] = flash->write_cmd;
 	for (actual = 0; actual < len; actual += chunk_len) {
 		write_addr = offset;
+#if defined(CONFIG_SF_DUAL_FLASH) || defined(CONFIG_SPI_FLASH_BAR)
 		bank_addr = offset;
+#endif
 
 #ifdef CONFIG_SF_DUAL_FLASH
 		if (flash->dual_flash > SF_SINGLE_FLASH)
@@ -562,6 +599,12 @@ int spi_flash_cmd_write_ops(struct spi_flash *flash, u32 offset,
 		offset += chunk_len;
 	}
 
+	if (flash->spi->bytemode != SPI_4BYTE_MODE) {
+#ifdef CONFIG_SPI_FLASH_BAR
+		ret = clean_bar(flash);
+#endif
+	}
+
 	return ret;
 }
 
@@ -598,9 +641,13 @@ int spi_flash_cmd_read_ops(struct spi_flash *flash, u32 offset,
 {
 	struct spi_slave *spi = flash->spi;
 	u8 *cmd, cmdsz;
-	u32 remain_len, read_len, read_addr, bank_addr;
+	u32 remain_len, read_len, read_addr;
 	int bank_sel = 0;
 	int ret = -1;
+#if defined(CONFIG_SF_DUAL_FLASH) || defined(CONFIG_SPI_FLASH_BAR)
+	u32 bank_addr;
+#endif
+
 #ifdef CONFIG_SF_DUAL_FLASH
 	u8 moveoffs = 0;
 	void *tempbuf = NULL;
@@ -653,7 +700,9 @@ int spi_flash_cmd_read_ops(struct spi_flash *flash, u32 offset,
 	cmd[0] = flash->read_cmd;
 	while (len) {
 		read_addr = offset;
+#if defined(CONFIG_SF_DUAL_FLASH) || defined(CONFIG_SPI_FLASH_BAR)
 		bank_addr = offset;
+#endif
 
 #ifdef CONFIG_SF_DUAL_FLASH
 		if (flash->dual_flash > SF_SINGLE_FLASH)
@@ -716,6 +765,12 @@ int spi_flash_cmd_read_ops(struct spi_flash *flash, u32 offset,
 #endif
 
 	spi->dummy_bytes = 0;
+
+	if (flash->spi->bytemode != SPI_4BYTE_MODE) {
+#ifdef CONFIG_SPI_FLASH_BAR
+		ret = clean_bar(flash);
+#endif
+	}
 
 	free(cmd);
 	return ret;
@@ -1178,8 +1233,9 @@ static int set_quad_mode(struct spi_flash *flash,
 			 const struct spi_flash_info *info)
 {
 	switch (JEDEC_MFR(info)) {
-#ifdef CONFIG_SPI_FLASH_MACRONIX
+#if defined(CONFIG_SPI_FLASH_MACRONIX) || defined(CONFIG_SPI_FLASH_ISSI)
 	case SPI_FLASH_CFI_MFR_MACRONIX:
+	case SPI_FLASH_CFI_MFR_ISSI:
 		return macronix_quad_enable(flash);
 #endif
 #if defined(CONFIG_SPI_FLASH_SPANSION) || defined(CONFIG_SPI_FLASH_WINBOND)
@@ -1203,7 +1259,10 @@ int spi_flash_cmd_4B_addr_switch(struct spi_flash *flash,
 				int enable, u8 idcode0)
 {
 	int ret;
-	u8 cmd, bar;
+	u8 cmd;
+#ifdef CONFIG_SPI_FLASH_BAR
+	u8 bar;
+#endif
 	bool need_wren = false;
 
 	ret = spi_claim_bus(flash->spi);
@@ -1228,10 +1287,15 @@ int spi_flash_cmd_4B_addr_switch(struct spi_flash *flash,
 
 		break;
 	default:
+#ifdef CONFIG_SPI_FLASH_BAR
 		/* Spansion style */
 		bar = enable << 7;
 		cmd = CMD_BANKADDR_BRWR;
 		ret = spi_flash_cmd_write(flash->spi, &cmd, 1, &bar, 1);
+#else
+		puts("SF: Bank Address is not set\n");
+		ret = -EINVAL;
+#endif
 	}
 
 	spi_release_bus(flash->spi);
@@ -1240,14 +1304,13 @@ int spi_flash_cmd_4B_addr_switch(struct spi_flash *flash,
 }
 
 #if CONFIG_IS_ENABLED(OF_CONTROL)
-int spi_flash_decode_fdt(const void *blob, struct spi_flash *flash)
+int spi_flash_decode_fdt(struct spi_flash *flash)
 {
 #ifdef CONFIG_DM_SPI_FLASH
 	fdt_addr_t addr;
 	fdt_size_t size;
-	int node = flash->dev->of_offset;
 
-	addr = fdtdec_get_addr_size(blob, node, "memory-map", &size);
+	addr = dev_read_addr_size(flash->dev, "memory-map", &size);
 	if (addr == FDT_ADDR_T_NONE) {
 		debug("%s: Cannot decode address\n", __func__);
 		return 0;
@@ -1274,24 +1337,37 @@ int spi_flash_scan(struct spi_flash *flash)
 	if (IS_ERR_OR_NULL(info))
 		return -ENOENT;
 
-	/* Flash powers up read-only, so clear BP# bits */
+	/*
+	 * Flash powers up read-only, so clear BP# bits.
+	 *
+	 * Note on some flash (like Macronix), QE (quad enable) bit is in the
+	 * same status register as BP# bits, and we need preserve its original
+	 * value during a reboot cycle as this is required by some platforms
+	 * (like Intel ICH SPI controller working under descriptor mode).
+	 */
 	if (JEDEC_MFR(info) == SPI_FLASH_CFI_MFR_ATMEL ||
-	    JEDEC_MFR(info) == SPI_FLASH_CFI_MFR_MACRONIX ||
-	    JEDEC_MFR(info) == SPI_FLASH_CFI_MFR_SST)
+	   (JEDEC_MFR(info) == SPI_FLASH_CFI_MFR_SST) ||
+	   (JEDEC_MFR(info) == SPI_FLASH_CFI_MFR_MACRONIX)) {
+		u8 sr = 0;
+
+		if (JEDEC_MFR(info) == SPI_FLASH_CFI_MFR_MACRONIX) {
+			read_sr(flash, &sr);
+			sr &= STATUS_QEB_MXIC;
+		}
+
 #ifdef CONFIG_SPI_GENERIC
-	{
 		flash->dual_flash = flash->spi->option;
 		if (flash->dual_flash & SF_DUAL_PARALLEL_FLASH)
 			flash->spi->flags |= SPI_XFER_LOWER;
 #endif
-		write_sr(flash, 0);
+		write_sr(flash, sr);
 #ifdef CONFIG_SPI_GENERIC
 		if (flash->dual_flash & SF_DUAL_PARALLEL_FLASH) {
 			flash->spi->flags |= SPI_XFER_UPPER;
 			write_sr(flash, 0);
 		}
-	}
 #endif
+	}
 
 	flash->name = info->name;
 	flash->memory_map = spi->memory_map;
@@ -1395,7 +1471,8 @@ int spi_flash_scan(struct spi_flash *flash)
 		flash->read_cmd = CMD_READ_QUAD_OUTPUT_FAST;
 		if (((JEDEC_MFR(info) == SPI_FLASH_CFI_MFR_SPANSION) &&
 		     (info->id[5] == SPI_FLASH_SPANSION_S25FS_FMLY)) ||
-		    (JEDEC_MFR(info) == SPI_FLASH_CFI_MFR_ISSI))
+		    ((JEDEC_MFR(info) == SPI_FLASH_CFI_MFR_ISSI) &&
+		      info->flags & RD_QUADIO))
 			flash->read_cmd = CMD_READ_QUAD_IO_FAST;
 	} else if (spi->mode & SPI_RX_DUAL && info->flags & RD_DUAL) {
 		flash->read_cmd = CMD_READ_DUAL_OUTPUT_FAST;
@@ -1481,7 +1558,7 @@ int spi_flash_scan(struct spi_flash *flash)
 #endif
 
 #if CONFIG_IS_ENABLED(OF_CONTROL) && !CONFIG_IS_ENABLED(OF_PLATDATA)
-	ret = spi_flash_decode_fdt(gd->fdt_blob, flash);
+	ret = spi_flash_decode_fdt(flash);
 	if (ret) {
 		debug("SF: FDT decode error\n");
 		return -EINVAL;

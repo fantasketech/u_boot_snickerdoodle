@@ -44,16 +44,10 @@
 /* fpd_dma clk 667MHz, lpd_dma 500MHz */
 &fpd_dma_chan1 {
 	status = "okay";
-	xlnx,include-sg; /* for testing purpose */
-	xlnx,overfetch; /* for testing purpose */
-	xlnx,ratectrl = <0>; /* for testing purpose */
-	xlnx,src-issue = <31>;
 };
 
 &fpd_dma_chan2 {
 	status = "okay";
-	xlnx,ratectrl = <100>; /* for testing purpose */
-	xlnx,src-issue = <4>; /* for testing purpose */
 };
 
 &fpd_dma_chan3 {
@@ -62,7 +56,6 @@
 
 &fpd_dma_chan4 {
 	status = "okay";
-	xlnx,include-sg; /* for testing purpose */
 };
 
 &fpd_dma_chan5 {
@@ -71,7 +64,6 @@
 
 &fpd_dma_chan6 {
 	status = "okay";
-	xlnx,include-sg; /* for testing purpose */
 };
 
 &fpd_dma_chan7 {
@@ -80,7 +72,6 @@
 
 &fpd_dma_chan8 {
 	status = "okay";
-	xlnx,include-sg; /* for testing purpose */
 };
 
 &gem1 {
@@ -117,56 +108,6 @@
 	scl-gpios = <&gpio 76 GPIO_ACTIVE_HIGH>;
 	sda-gpios = <&gpio 77 GPIO_ACTIVE_HIGH>;
 
-};
-
-&sdhci0 {
-	status = "okay";
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_sdhci0_default>;
-	no-1-8-v;
-	xlnx,mio_bank = <0>;
-};
-
-&uart0 {
-	status = "okay";
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_uart0_default>;
-};
-
-&uart1 {
-	status = "okay";
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_uart1_default>;
-};
-
-&watchdog0 {
-	status = "okay";
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_watchdog0_default>;
-};
-
-&ttc0 {
-	status = "okay";
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_ttc0_default>;
-};
-
-&ttc1 {
-	status = "okay";
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_ttc1_default>;
-};
-
-&ttc2 {
-	status = "okay";
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_ttc2_default>;
-};
-
-&ttc3 {
-	status = "okay";
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_ttc3_default>;
 };
 
 &pinctrl0 {
@@ -464,4 +405,54 @@
 			slew-rate = <SLEW_RATE_SLOW>;
 		};
 	};
+};
+
+&sdhci0 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_sdhci0_default>;
+	no-1-8-v;
+	xlnx,mio_bank = <0>;
+};
+
+&ttc0 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_ttc0_default>;
+};
+
+&ttc1 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_ttc1_default>;
+};
+
+&ttc2 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_ttc2_default>;
+};
+
+&ttc3 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_ttc3_default>;
+};
+
+&uart0 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart0_default>;
+};
+
+&uart1 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart1_default>;
+};
+
+&watchdog0 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_watchdog0_default>;
 };
