@@ -1,0 +1,60 @@
+/*
+ * snickerdoodle Development Platform
+ *
+ * Copyright (c) 2016 krtkl inc.
+ *
+ * SPDX-License-Identifier:     GPL-2.0+
+ */
+
+
+/dts-v1/;
+/include/ "zynq-7000.dtsi"
+/ {
+        model = "snickerdoodle";
+        compatible = "krtkl,snickerdoodle", "xlnx,zynq-7000";
+
+	aliases {
+		serial0 = &uart0;
+		spi0 = &qspi;
+		mmc0 = &sdhci0;
+	};
+
+	memory {
+		device_type = "memory";
+		reg = <0x0 0x40000000>;
+	};
+
+	chosen {
+                bootargs = "";
+                stdout-path = "serial0:115200n8";
+        };
+
+	cpus {
+		cpu@0 {
+			operating-points = <
+				/* kHz	uV */
+				666667	1000000
+				333334	1000000
+			>;
+		};
+	};
+};
+
+&clkc {
+	ps-clk-frequency = <33333333>;
+};
+
+&uart0 {
+	u-boot,dm-pre-reloc;
+	status = "okay";
+};
+
+&sdhci0 {
+	u-boot,dm-pre-reloc;
+        status = "okay";
+};
+
+&qspi {
+        u-boot,dm-pre-reloc;
+        status = "okay";
+};

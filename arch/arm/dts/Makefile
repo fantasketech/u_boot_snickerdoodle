@@ -153,8 +153,10 @@ dtb-$(CONFIG_ARCH_ZYNQ) += \
 	zynq-zed.dtb \
 	zynq-zturn-myir.dtb \
 	zynq-zybo.dtb \
-	zynq-snickerdoodle.dtb \
-	zynq-snickerdoodle-prime.dtb
+	snickerdoodle.dtb \
+	snickerdoodle-black.dtb \
+	snickerdoodle-prime.dtb \
+	snickerdoodle-one.dtb
 dtb-$(CONFIG_ARCH_ZYNQMP) += \
 	zynqmp-ep108.dtb			\
 	zynqmp-mini.dtb				\

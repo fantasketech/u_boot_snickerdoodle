@@ -1,5 +1,5 @@
 /*
- * snickerdoodle board DTS
+ * snickerdoodle Prime Development Platform
  *
  * Copyright (c) 2016 krtkl inc.
  *
@@ -10,8 +10,8 @@
 /dts-v1/;
 /include/ "zynq-7000.dtsi"
 / {
-        model = "snickerdoodle";
-        compatible = "xlnx,zynq-snickerdoodle", "xlnx,zynq-7000";
+        model = "snickerdoodle Prime";
+        compatible = "krtkl,snickerdoodle-prime", "krtkl,snickerdoodle", "xlnx,zynq-7000";
 
 	aliases {
 		serial0 = &uart0;
@@ -21,7 +21,7 @@
 
 	memory {
 		device_type = "memory";
-		reg = <0x0 0x40000000>;
+		reg = <0x0 0x20000000>;
 	};
 
 	chosen {
