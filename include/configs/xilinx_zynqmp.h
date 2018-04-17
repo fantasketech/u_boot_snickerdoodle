@@ -21,7 +21,9 @@
 #define GICC_BASE	0xF9020000
 
 #define CONFIG_SYS_ALT_MEMTEST
-#define CONFIG_SYS_MEMTEST_SCRATCH	0xfffc0000
+#ifndef CONFIG_SYS_MEMTEST_SCRATCH
+# define CONFIG_SYS_MEMTEST_SCRATCH	0x10800000
+#endif
 
 #ifndef CONFIG_NR_DRAM_BANKS
 # define CONFIG_NR_DRAM_BANKS		2
@@ -150,12 +152,11 @@
 	"fdt_high=0x10000000\0" \
 	"loadbootenv_addr=0x100000\0" \
 	"sdbootdev=0\0"\
-	"kernel_offset=0x180000\0" \
-	"fdt_offset=0x100000\0" \
+	"kernel_offset=0x280000\0" \
+	"fdt_offset=0x200000\0" \
 	"kernel_size=0x1e00000\0" \
 	"fdt_size=0x80000\0" \
 	"bootenv=uEnv.txt\0" \
-	"bootargs=earlycon clk_ignore_unused\0" \
 	"loadbootenv=load mmc $sdbootdev:$partid ${loadbootenv_addr} ${bootenv}\0" \
 	"importbootenv=echo Importing environment from SD ...; " \
 		"env import -t ${loadbootenv_addr} $filesize\0" \

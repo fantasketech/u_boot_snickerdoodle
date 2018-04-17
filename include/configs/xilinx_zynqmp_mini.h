@@ -16,6 +16,8 @@
 /* #define CONFIG_SYS_DCACHE_OFF */
 #define CONFIG_SYS_ICACHE_OFF
 
+#define CONFIG_SYS_MEMTEST_SCRATCH     0xfffc0000
+
 #include <configs/xilinx_zynqmp.h>
 
 /* Undef unneeded configs */
@@ -32,7 +34,6 @@
 #undef CONFIG_GZIP
 #undef CONFIG_CMD_SPL
 #undef CONFIG_CMD_ENV
-#undef CONFIG_DOS_PARTITION
 #undef CONFIG_MP
 #undef CONFIG_SYS_INIT_SP_ADDR
 #undef CONFIG_SYS_LONGHELP
@@ -92,7 +93,6 @@
 # define CONFIG_ENV_SIZE		0x10000
 # define CONFIG_SYS_INIT_SP_ADDR	CONFIG_SYS_TEXT_BASE
 # define CONFIG_SYS_MALLOC_LEN		0x800000
-# define CONFIG_DOS_PARTITION
 # define CONFIG_PARTITIONS
 # define CONFIG_SYS_LONGHELP
 # undef CONFIG_ENV_IS_IN_FAT

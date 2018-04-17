@@ -146,10 +146,10 @@ def test_qspi_erase_block(u_boot_console):
 # Random write till page size, random till size and full size
 def qspi_write_twice(u_boot_console):
 
-    qspi_erase_block(u_boot_console)
     addr = u_boot_utils.find_ram_base(u_boot_console)
     expected_write = "Written: OK"
     expected_read = "Read: OK"
+    expected_erase = "Erased: OK"
 
     old_size = 0
     # TODO maybe add alignment and different start for pages
@@ -163,6 +163,23 @@ def qspi_write_twice(u_boot_console):
 
         expected_crc32 = m.group(1)
         # print expected_crc32
+        if old_size % page_size:
+            old_size /= page_size
+            old_size *= page_size
+
+        if size % erase_size:
+            erasesize = size/erase_size + 1
+            erasesize *= erase_size
+
+        eraseoffset = old_size/erase_size
+        eraseoffset *= erase_size
+
+        timeout = 100000000
+        start = 0
+        with u_boot_console.temporary_timeout(timeout):
+           output = u_boot_console.run_command('sf erase %x %x' % (eraseoffset, erasesize))
+           assert expected_erase in output
+
         output = u_boot_console.run_command('sf write %x %x %x' % (addr + total_size, old_size, size))
         assert expected_write in output
         output = u_boot_console.run_command('sf read %x %x %x' % (addr + total_size + offset, old_size, size))
@@ -238,61 +255,4 @@ def test_qspi_erase_all(u_boot_console):
     while i < loop:
         qspi_pre_commands(u_boot_console, random.randint(min_f, max_f))
         qspi_erase_all(u_boot_console)
-        i = i + 1
-
-# Load FIT image and write boot.bin to start of qspi to be ready for qspi boot
-def qspi_boot_images(u_boot_console):
-
-    if not test_net.net_set_up:
-        pytest.skip('Network not initialized')
-
-    test_net.test_net_dhcp(u_boot_console)
-    test_net.test_net_setup_static(u_boot_console)
-    test_net.test_net_tftpboot(u_boot_console)
-
-    f = u_boot_console.config.env.get('env__net_tftp_readable_file', None)
-    if not f:
-        pytest.skip('No TFTP readable file to read')
-
-    addr = f.get('addr', None)
-    if not addr:
-      addr = u_boot_utils.find_ram_base(u_boot_console)
-
-    map = 0x0
-    temp = 0x50000
-    expected_write = "OK"
-    output = u_boot_console.run_command('imxtract %x boot@1 %x' % (addr, temp))
-    assert expected_write in output
-
-    expected_erase = "Erased: OK"
-    output = u_boot_console.run_command('sf erase %x +$filesize ' % map)
-    assert expected_erase in output
-
-    expected_write = "Written: OK"
-    output = u_boot_console.run_command('sf write %x %x $filesize' % (temp, map))
-    assert expected_write in output
-
-    map = u_boot_console.config.buildconfig.get('config_sys_spi_u_boot_offs', "0x1000")
-    map = int(map, 16)
-    expected_write = "OK"
-    output = u_boot_console.run_command('imxtract %x boot@2 %x' % (addr, temp))
-    assert expected_write in output
-
-    expected_erase = "Erased: OK"
-    output = u_boot_console.run_command('sf erase %x +$filesize ' % map)
-    assert expected_erase in output
-
-    expected_write = "Written: OK"
-    output = u_boot_console.run_command('sf write %x %x $filesize' % (temp, map))
-    assert expected_write in output
-
-@pytest.mark.buildconfigspec("cmd_bdi")
-@pytest.mark.buildconfigspec("cmd_sf")
-@pytest.mark.buildconfigspec("cmd_ximg")
-def test_qspi_boot_images(u_boot_console):
-    qspi_find_freq_range(u_boot_console)
-    i = 0
-    while i < loop:
-        qspi_pre_commands(u_boot_console, random.randint(min_f, max_f))
-        qspi_boot_images(u_boot_console)
         i = i + 1

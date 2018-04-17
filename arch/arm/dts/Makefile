@@ -158,7 +158,6 @@ dtb-$(CONFIG_ARCH_ZYNQ) += \
 	snickerdoodle-prime.dtb \
 	snickerdoodle-one.dtb
 dtb-$(CONFIG_ARCH_ZYNQMP) += \
-	zynqmp-ep108.dtb			\
 	zynqmp-mini.dtb				\
 	zynqmp-mini-qspi-parallel.dtb		\
 	zynqmp-mini-qspi-single.dtb		\
@@ -168,7 +167,8 @@ dtb-$(CONFIG_ARCH_ZYNQMP) += \
 	zynqmp-mini-qspi-x2-single.dtb		\
 	zynqmp-mini-qspi-x2-stacked.dtb		\
 	zynqmp-mini-nand.dtb			\
-	zynqmp-mini-emmc.dtb			\
+	zynqmp-mini-emmc0.dtb			\
+	zynqmp-mini-emmc1.dtb			\
 	zynqmp-zcu100-revC.dtb			\
 	zynqmp-zcu102-revA.dtb			\
 	zynqmp-zcu102-revB.dtb			\
@@ -180,6 +180,7 @@ dtb-$(CONFIG_ARCH_ZYNQMP) += \
 	zynqmp-zc1232-revA.dtb			\
 	zynqmp-zc1254-revA.dtb			\
 	zynqmp-zc1275-revA.dtb			\
+	zynqmp-zc1275-revB.dtb			\
 	zynqmp-zc1751-xm015-dc1.dtb		\
 	zynqmp-zc1751-xm016-dc2.dtb		\
 	zynqmp-zc1751-xm017-dc3.dtb		\
