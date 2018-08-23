@@ -165,12 +165,21 @@ static int write_cr(struct spi_flash *flash, u8 wc)
 static int clean_bar(struct spi_flash *flash)
 {
 	u8 cmd, bank_sel = 0;
+	int ret;
 
 	if (flash->bank_curr == 0)
 		return 0;
 	cmd = flash->bank_write_cmd;
 
-	return spi_flash_write_common(flash, &cmd, 1, &bank_sel, 1);
+	ret = spi_flash_write_common(flash, &cmd, 1, &bank_sel, 1);
+	if (ret) {
+		debug("SF: fail to write bank register\n");
+		return ret;
+	}
+
+	flash->bank_curr = bank_sel;
+
+	return ret;
 }
 
 static int write_bar(struct spi_flash *flash, u32 offset)
@@ -1349,10 +1358,24 @@ int spi_flash_scan(struct spi_flash *flash)
 	   (JEDEC_MFR(info) == SPI_FLASH_CFI_MFR_SST) ||
 	   (JEDEC_MFR(info) == SPI_FLASH_CFI_MFR_MACRONIX)) {
 		u8 sr = 0;
+#ifdef CONFIG_SPI_GENERIC
+		u8 sr_up = 0;
+#endif
 
 		if (JEDEC_MFR(info) == SPI_FLASH_CFI_MFR_MACRONIX) {
+#ifdef CONFIG_SPI_GENERIC
+			if (flash->spi->option & SF_DUAL_PARALLEL_FLASH)
+				flash->spi->flags |= SPI_XFER_LOWER;
+#endif
 			read_sr(flash, &sr);
 			sr &= STATUS_QEB_MXIC;
+#ifdef CONFIG_SPI_GENERIC
+			if (flash->spi->option & SF_DUAL_PARALLEL_FLASH) {
+				flash->spi->flags |= SPI_XFER_UPPER;
+				read_sr(flash, &sr_up);
+				sr_up &= STATUS_QEB_MXIC;
+			}
+#endif
 		}
 
 #ifdef CONFIG_SPI_GENERIC
@@ -1364,7 +1387,7 @@ int spi_flash_scan(struct spi_flash *flash)
 #ifdef CONFIG_SPI_GENERIC
 		if (flash->dual_flash & SF_DUAL_PARALLEL_FLASH) {
 			flash->spi->flags |= SPI_XFER_UPPER;
-			write_sr(flash, 0);
+			write_sr(flash, sr_up);
 		}
 #endif
 	}
@@ -1552,9 +1575,11 @@ int spi_flash_scan(struct spi_flash *flash)
 
 	/* Configure the BAR - discover bank cmds and read current bank */
 #ifdef CONFIG_SPI_FLASH_BAR
-	ret = read_bar(flash, info);
-	if (ret < 0)
-		return ret;
+	if (flash->spi->bytemode != SPI_4BYTE_MODE) {
+		ret = read_bar(flash, info);
+		if (ret < 0)
+			return ret;
+	}
 #endif
 
 #if CONFIG_IS_ENABLED(OF_CONTROL) && !CONFIG_IS_ENABLED(OF_PLATDATA)

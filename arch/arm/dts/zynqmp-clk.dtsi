@@ -1,11 +1,10 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
  * Clock specification for Xilinx ZynqMP
  *
- * (C) Copyright 2015, Xilinx, Inc.
+ * (C) Copyright 2015 - 2018, Xilinx, Inc.
  *
  * Michal Simek <michal.simek@xilinx.com>
- *
- * SPDX-License-Identifier:	GPL-2.0+
  */
 
 / {
@@ -178,6 +177,10 @@
 	clocks = <&clk100>;
 };
 
+&perf_monitor_ocm {
+	clocks = <&clk100>;
+};
+
 &qspi {
 	clocks = <&clk300 &clk300>;
 };
@@ -222,18 +225,14 @@
 	clocks = <&clk250>;
 };
 
-&xilinx_drm {
-	clocks = <&drm_clock>;
-};
-
-&xlnx_dp {
-	clocks = <&dp_aclk>, <&dp_aud_clk>;
+&zynqmp_dpsub {
+	clocks = <&dp_aclk>, <&dp_aud_clk>, <&drm_clock>;
 };
 
 &xlnx_dpdma {
 	clocks = <&dpdma_clk>;
 };
 
-&xlnx_dp_snd_codec0 {
+&zynqmp_dp_snd_codec0 {
 	clocks = <&dp_aud_clk>;
 };

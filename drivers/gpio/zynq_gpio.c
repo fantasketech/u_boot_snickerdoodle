@@ -179,7 +179,7 @@ static inline void zynq_gpio_get_bank_pin(unsigned int pin_num,
 	}
 
 	if (bank >= priv->p_data->max_bank) {
-		printf("Inavlid bank and pin num\n");
+		printf("Invalid bank and pin num\n");
 		*bank_num = 0;
 		*bank_pin_num = 0;
 	}
@@ -189,7 +189,7 @@ static int gpio_is_valid(unsigned gpio, struct udevice *dev)
 {
 	struct zynq_gpio_privdata *priv = dev_get_priv(dev);
 
-	return (gpio >= 0) && (gpio < priv->p_data->ngpio);
+	return gpio < priv->p_data->ngpio;
 }
 
 static int check_gpio(unsigned gpio, struct udevice *dev)

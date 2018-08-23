@@ -20,10 +20,7 @@
 #define ZYNQMP_FPGA_BIT_ENC_DEV_KEY	4
 #define ZYNQMP_FPGA_BIT_NS		5
 
-#define ZYNQMP_FPGA_ENC_USR_KEY	1
 #define ZYNQMP_FPGA_AUTH_DDR	1
-#define ZYNQMP_FPGA_NO_ENC	2
-#define ZYNQMP_FPGA_NO_AUTH	2
 
 enum {
 	IDCODE,
@@ -55,7 +52,7 @@ int invoke_smc(u32 pm_api_id, u32 arg0, u32 arg1, u32 arg2, u32 arg3,
 	       u32 *ret_payload);
 
 void initialize_tcm(bool mode);
-
+void mem_map_fill(void);
 int chip_id(unsigned char id);
 
 #endif /* _ASM_ARCH_SYS_PROTO_H */
