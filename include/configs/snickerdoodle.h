@@ -11,6 +11,7 @@
 #define __CONFIG_SNICKERDOODLE_H
 
 #include <configs/zynq-common.h>
+#include "zynq_bot.h"
 
 #endif /* __CONFIG_SNICKERDOODLE_H */
 
